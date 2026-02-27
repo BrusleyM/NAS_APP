@@ -1,42 +1,52 @@
-NEO AR Showroom
+# NEO AR Showroom
 
-https://img.shields.io/badge/license-MIT-blue.svg
-https://img.shields.io/travis/BrusleyM/NAS_APP.svg
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Build Status](https://img.shields.io/travis/BrusleyM/NAS_APP.svg)](https://travis-ci.org/BrusleyM/NAS_APP)
 
-An Augmented Reality Car Showroom designed for automotive dealerships and their customers.
-Experience full‑scale 3D vehicles in your real environment, customize trims and colors in real time, and get an instant, non‑binding monthly payment estimate—all without sharing sensitive personal data. This app turns a smartphone into a powerful sales tool, generating warm, pre‑qualified leads for dealerships.
+An **Augmented Reality Car Showroom** designed for automotive dealerships and their customers. Experience full‑scale 3D vehicles in your real environment, customize trims and colors in real time, and get an instant, non‑binding monthly payment estimate—all without sharing sensitive personal data. This app turns a smartphone into a powerful sales tool, generating warm, pre‑qualified leads for dealerships.
 
-Features
+---
 
-Full‑scale AR vehicle placement – Life‑sized 3D models anchored on any flat surface using auto surface detection.
-Real‑time customization – Change paint, wheels, interiors, and trims on the fly.
-Affordability estimator – See estimated monthly payments based on deposit, trade‑in, and term (no credit check, no ID required).
-Interior exploration – Immerse yourself in the cabin from the driver’s seat.
-Save configurations – Build a personal “virtual garage” of favorite builds.
-Lead submission – Submit your name, configuration, and estimate directly to the dealership as a warm lead.
-Dealership white‑label – Fully branded as the dealer’s own app, with analytics dashboard and inventory management.
-Tech Stack
+## Features
 
-AR Framework – AR Foundation (ARCore for Android, ARKit for iOS)
-Game Engine – Unity 6.3 (or newer)
-Backend & Cloud – AWS S3 for asset storage, CloudFront CDN for fast delivery, custom REST API (Node.js / Python) for lead capture and configuration sync
-Mobile Platforms – Android (primary, ARCore‑ready), iOS (planned, ARKit)
-Additional Libraries – Unity’s Addressable Assets system, Newtonsoft.Json for API serialization
-Prerequisites
+- **Full‑scale AR vehicle placement** – Life‑sized 3D models anchored on any flat surface using auto surface detection.
+- **Real‑time customization** – Change paint, wheels, interiors, and trims on the fly.
+- **Affordability estimator** – See estimated monthly payments based on deposit, trade‑in, and term (no credit check, no ID required).
+- **Interior exploration** – Immerse yourself in the cabin from the driver’s seat.
+- **Save configurations** – Build a personal “virtual garage” of favorite builds.
+- **Lead submission** – Submit your name, configuration, and estimate directly to the dealership as a warm lead.
+- **Dealership white‑label** – Fully branded as the dealer’s own app, with analytics dashboard and inventory management.
+
+---
+
+## Tech Stack
+
+- **AR Framework** – AR Foundation (ARCore for Android, ARKit for iOS)
+- **Game Engine** – **Unity 6.3** (or newer)
+- **Backend & Cloud** – AWS S3 for asset storage, CloudFront CDN for fast delivery, custom REST API (Node.js / Python) for lead capture and configuration sync
+- **Mobile Platforms** – Android (primary, ARCore‑ready), iOS (planned, ARKit)
+- **Additional Libraries** – Unity’s Addressable Assets system, Newtonsoft.Json for API serialization
+
+---
+
+## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
-Unity Hub and Unity 6.3 (or later) with Android Build Support (including SDK, NDK, JDK)
-Git
-An ARCore‑compatible Android device (see Google’s list) or an iOS device with ARKit support for testing
-(Optional) Android Studio for logcat debugging
-Installation
+- **Unity Hub** and **Unity 6.3** (or later) with Android Build Support (including SDK, NDK, JDK)
+- **Git**
+- An **ARCore‑compatible Android device** (see [Google’s list](https://developers.google.com/ar/discover/supported-devices)) or an iOS device with ARKit support for testing
+- (Optional) **Android Studio** for logcat debugging
 
-Clone the repository
+---
 
-bash
-git clone https://github.com/BrusleyM/NAS_APP.git
-cd NAS_APP
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/BrusleyM/NAS_APP.git
+   cd NAS_APP
+
 Open the project in Unity
 
 Launch Unity Hub, click Open, and select the cloned folder.
