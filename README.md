@@ -1,111 +1,144 @@
-NEO AR SHOWROOM
+NEO AR Showroom
 
 https://img.shields.io/badge/license-MIT-blue.svg
-https://img.shields.io/travis/username/project.svg
+https://img.shields.io/travis/BrusleyM/NAS_APP.svg
 
-[One or two sentences describing your AR project – what it does, who it's for, and why it's cool.]
+An Augmented Reality Car Showroom designed for automotive dealerships and their customers.
+Experience full‑scale 3D vehicles in your real environment, customize trims and colors in real time, and get an instant, non‑binding monthly payment estimate—all without sharing sensitive personal data. This app turns a smartphone into a powerful sales tool, generating warm, pre‑qualified leads for dealerships.
 
 Features
 
-[Feature 1: e.g., Real‑time object tracking]
-[Feature 2: e.g., Multi‑user AR collaboration]
-[Feature 3: e.g., Custom 3D model rendering]
-[Feature 4: e.g., Integration with backend services]
+Full‑scale AR vehicle placement – Life‑sized 3D models anchored on any flat surface using auto surface detection.
+Real‑time customization – Change paint, wheels, interiors, and trims on the fly.
+Affordability estimator – See estimated monthly payments based on deposit, trade‑in, and term (no credit check, no ID required).
+Interior exploration – Immerse yourself in the cabin from the driver’s seat.
+Save configurations – Build a personal “virtual garage” of favorite builds.
+Lead submission – Submit your name, configuration, and estimate directly to the dealership as a warm lead.
+Dealership white‑label – Fully branded as the dealer’s own app, with analytics dashboard and inventory management.
 Tech Stack
 
-AR Framework: [e.g., ARCore / ARKit / Vuforia]
-Game Engine (if used): [e.g., Unity / Unreal]
-Backend: [e.g., Firebase / Node.js / Django]
-Mobile Platforms: Android (primary) / iOS (optional)
-Additional Libraries: [e.g., OpenCV, TensorFlow Lite, etc.]
+AR Framework – AR Foundation (ARCore for Android, ARKit for iOS)
+Game Engine – Unity 6.3 (or newer)
+Backend & Cloud – AWS S3 for asset storage, CloudFront CDN for fast delivery, custom REST API (Node.js / Python) for lead capture and configuration sync
+Mobile Platforms – Android (primary, ARCore‑ready), iOS (planned, ARKit)
+Additional Libraries – Unity’s Addressable Assets system, Newtonsoft.Json for API serialization
 Prerequisites
 
 Before you begin, ensure you have the following installed:
 
-Android Studio (version [X.Y] or later)
-JDK 8+
-Node.js / npm (if backend or tooling is required)
+Unity Hub and Unity 6.3 (or later) with Android Build Support (including SDK, NDK, JDK)
 Git
-A physical Android device with ARCore support (or an emulator with AR capabilities)
+An ARCore‑compatible Android device (see Google’s list) or an iOS device with ARKit support for testing
+(Optional) Android Studio for logcat debugging
 Installation
 
 Clone the repository
 
 bash
-git clone https://github.com/username/project.git
-cd project
-Open the project in Android Studio
+git clone https://github.com/BrusleyM/NAS_APP.git
+cd NAS_APP
+Open the project in Unity
 
-Launch Android Studio and select "Open an existing project".
-Navigate to the cloned directory and open it.
-Set up dependencies
+Launch Unity Hub, click Open, and select the cloned folder.
+Unity will import all assets and resolve dependencies.
+Configure platform settings
 
-The project uses Gradle; sync the project when prompted.
-Configure API keys / environment variables
+Go to File → Build Settings.
+Switch platform to Android (or iOS if building for iOS).
+Ensure the Texture Compression is set to ASTC (recommended for AR apps).
+Set up backend API keys (if required)
 
-Some features (like cloud anchors or backend services) may require API keys.
-Create a local.properties file in the root directory and add your keys:
+Create a file Assets/Resources/APIConfig.json (this file is ignored by Git).
+Add your API endpoint and any necessary keys:
 
-text
-sdk.dir=/path/to/android/sdk
-YOUR_API_KEY=your_key_here
-Never commit real keys to the repository!
+json
+{
+  "leadApiUrl": "https://your-dealership-api.com/submit",
+  "assetBaseUrl": "https://your-cdn.cloudfront.net/"
+}
+For security, never commit real keys. Use the provided template APIConfig.json.example.
+Build and run
+
+Connect your ARCore‑compatible device via USB and enable USB Debugging.
+In Unity, click File → Build and Run.
+The app will be installed and launched on your device.
 Usage
 
-Running the App
-
-Connect your ARCore‑compatible device via USB and enable USB debugging.
-In Android Studio, select your device from the run configurations and click the Run button.
 Basic Interaction
 
-[Describe how to use the app: e.g., point the camera at a surface to place virtual objects, tap to interact, etc.]
-[Explain any gestures or controls.]
-Developer Options
+Point your camera at a flat surface (floor, table) – the app will detect it and show a placement grid.
+Tap to place the vehicle at full scale.
+Use on‑screen buttons to change colors, wheels, or trim.
+Swipe to rotate the view, pinch to zoom.
+Tap the “Estimate” button to open the affordability calculator.
+After configuring, tap “Submit Lead” to send your interest to the dealership.
+Showroom Kiosk Mode (Windows Standalone)
 
-[If applicable, list debug flags, logging, or test modes.]
-Android Part
+A Windows version is also available for in‑showroom kiosks.
+Build the project for Windows Standalone from Unity, or request a pre‑built executable from the development team.
 
-This section provides details specific to the Android implementation.
+Android‑Specific Notes
 
-Architecture
+The Android build uses ARCore via AR Foundation. Key considerations:
 
-[Briefly describe the app’s architecture: e.g., MVVM, Clean Architecture, etc.]
-[Mention key components like Activities/Fragments, ViewModels, Repositories.]
-AR Integration
+Minimum API level: 24 (Android 7.0)
+ARCore must be installed on the device (the app will prompt installation if missing).
+All AR session management is handled in the AR Session and AR Session Origin GameObjects.
+For debugging, use adb logcat with the tag Unity to filter Unity logs.
+Backend Integration
 
-The project uses [ARCore / Vuforia / etc.] for AR functionality.
-Key AR classes are located in [package path].
-[Add any specific notes about AR session management, anchor handling, etc.]
-Keystone Integration
+The app communicates with a cloud backend for:
 
-For security reasons, the Keystone integration code is not included in this public repository. Keystone is used for [briefly explain what Keystone does – e.g., authentication, secure data storage, license verification].
+Asset streaming – 3D models and textures are loaded at runtime from AWS S3/CloudFront using Unity Addressables, keeping the initial app size small.
+Lead submission – When a user submits their interest, the app sends a JSON payload to a dealership‑specific API endpoint. The payload includes:
 
-If you are a contributor or need to set up the Android module with Keystone, please follow these steps:
+First name
+Vehicle configuration (model, trim, color, wheels)
+Estimated deposit and trade‑in
+Preferred term and calculated monthly payment
+Timestamp
+No personally identifiable information (ID numbers, bank details) is ever collected or transmitted.
 
-Contact the project maintainers to request the secure Keystone configuration files.
-Place the provided files in the appropriate directory (e.g., app/src/main/assets/ or app/src/main/res/raw/).
-Ensure that any sensitive data (API keys, certificates, etc.) are stored securely and not committed to version control.
-Important: Never commit Keystone-related secrets or proprietary code to the repository. Use environment variables, secure vaults, or local configuration files that are excluded from version control (e.g., added to .gitignore).
-If you have any questions or need access, please reach out to the team directly.
+For development, you can mock the API locally. Contact the team for sample API contracts.
 
 Contributing
 
-We welcome contributions! Please read our Contributing Guidelines before submitting a pull request.
+We welcome contributions! Please follow our guidelines:
 
-Fork the repository
-Create a feature branch (git checkout -b feature/AmazingFeature)
-Commit your changes (git commit -m 'Add some AmazingFeature')
-Push to the branch (git push origin feature/AmazingFeature)
-Open a Pull Request
+Fork the repository.
+Create a feature branch
+Branch names must follow the pattern:
+<username>/<issue-type>/<ticket-number>
+Examples:
+
+brusley/feature/PROJ-123
+jane/hotfix/PROJ-456
+mike/bugfix/PROJ-789
+This naming convention keeps work organized and links branches directly to Jira tickets.
+Commit your changes with clear messages (reference the ticket number in commits, e.g., PROJ-123: Add affordability estimator UI).
+Push to your branch.
+Open a Pull Request against the develop branch.
+For major changes, please open an issue first to discuss what you would like to change.
+
+Read our Contributing Guidelines for more details.
+
 License
 
 Distributed under the MIT License. See LICENSE for more information.
 
 Contact
 
-Project Lead: Name
-Project Link: https://github.com/username/project
+NEOXR
+Project Lead: Brusley Masemola
+
+Email: brusleymasemola@hotmail.com
+LinkedIn: Brusley Masemola
+GitHub: @BrusleyM
+Project Link: https://github.com/BrusleyM/NAS_APP
+
 Acknowledgements
 
-[List any third‑party libraries, assets, or inspirations.]
-[e.g., ARCore, Firebase, etc.]
+AR Foundation
+Unity Addressables
+AWS S3 & CloudFront
+Inspired by the needs of modern automotive dealerships
