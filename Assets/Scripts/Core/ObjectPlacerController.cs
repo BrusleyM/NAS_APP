@@ -131,6 +131,7 @@ namespace NAS.Core
                                     if(plane.gameObject.activeSelf)
                                         plane.gameObject.SetActive(false);
                             }
+                            _planeManager.enabled = false; // Stops new plane detection
                         }
 
                         Debug.Log("Object placed successfully.");

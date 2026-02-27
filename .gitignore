@@ -12,7 +12,8 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
-
+# Android build artifacts
+/.utmp/
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
@@ -40,6 +41,7 @@ ExportedObj/
 *.sln
 *.suo
 *.tmp
+*.utmp
 *.user
 *.userprefs
 *.pidb
