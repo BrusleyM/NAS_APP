@@ -1,0 +1,5 @@
+/Users/neoxr/Documents/Unity Projects/NEO AR Showroom/.utmp/RelWithDebInfo/j3l95149/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/neoxr/Documents/Unity Projects/NEO AR Showroom/.utmp/RelWithDebInfo/j3l95149/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/neoxr/Documents/Unity Projects/NEO AR Showroom/.utmp/RelWithDebInfo/j3l95149/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/Users/neoxr/Documents/Unity Projects/NEO AR Showroom/.utmp/RelWithDebInfo/j3l95149/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/Users/neoxr/Documents/Unity Projects/NEO AR Showroom/.utmp/RelWithDebInfo/j3l95149/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
