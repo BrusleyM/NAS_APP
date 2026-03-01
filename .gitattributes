@@ -30,6 +30,9 @@
 *.controller filter=lfs diff=lfs merge=lfs -text
 *.mask filter=lfs diff=lfs merge=lfs -text
 
+# dlls
+*.dll filter=lfs diff=lfs merge=lfs -text
+
 # Addressables build output (important!)
 [Ll]ibrary/com.unity.addressables/**
 [Ll]ibrary/com.unity.addressables/** filter=lfs diff=lfs merge=lfs -text
