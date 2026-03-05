@@ -1,0 +1,15 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.3.9f1
+CRC: 2369458707
+HashAppended: 0
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: ardebugmenu
+      Dependencies: {}
+    Info_1:
+      Name: unifiedraytracing
+      Dependencies: {}
+    Info_2:
+      Name: carmodels/genericcar
+      Dependencies: {}

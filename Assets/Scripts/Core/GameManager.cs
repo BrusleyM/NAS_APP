@@ -34,7 +34,7 @@ namespace NAS.Core
         {
             IStorageConfig config = null;
 
-            if (_useProduction)
+            /*if (_useProduction)
             {
                 config = Resources.Load<ProdStorageConfig>("Config/ProdStorageConfig");
                 if (config == null)
@@ -45,13 +45,15 @@ namespace NAS.Core
                 config = Resources.Load<DevStorageConfig>("Config/DevStorageConfig");
                 if (config == null)
                     Debug.LogError("DevStorageConfig not found in Resources/Config/!");
-            }
-
+            }*/
+            config = Resources.Load<DevStorageConfig>("Config/DevStorageConfig");
+            if (config == null)
+                Debug.LogError("DevStorageConfig not found in Resources/Config/!");
             if (config == null) return;
 
-            _storage = _useProduction
+            _storage = /*_useProduction
                 ? new ProdStorageService(config)
-                : new DevStorageService(config);
+                : */new DevStorageService(config);
 
             Debug.Log($"GameManager: Using {(_useProduction ? "PRODUCTION" : "DEVELOPMENT")} storage.");
         }
