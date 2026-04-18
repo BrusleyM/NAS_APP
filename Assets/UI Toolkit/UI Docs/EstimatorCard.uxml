@@ -1,0 +1,64 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/EstimatorScreen.uss?fileID=7433441132597879392&amp;guid=847bf084478f94ebb8424eb3d21000e4&amp;type=3#EstimatorScreen"/>
+    <ui:VisualElement name="estimator-card" class="glass-card">
+        <ui:Label text="Affordability Estimator" class="card-title"/>
+        <ui:Label text="Tesla Model S · Performance Trim" class="vehicle-info"/>
+        <ui:VisualElement class="info-box">
+            <ui:Label text="Retail Price" class="info-label"/>
+            <ui:Label name="retail-price" text="$75,000" class="info-value"/>
+        </ui:VisualElement>
+        <ui:ScrollView name="estimator-scroll" class="estimator-scroll">
+            <ui:VisualElement class="two-columns">
+                <ui:VisualElement class="input-group">
+                    <ui:Label text="Deposit" class="field-label"/>
+                    <ui:FloatField name="deposit-field" value="15000" class="input-field"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="input-group">
+                    <ui:Label text="Trade-In Value" class="field-label"/>
+                    <ui:FloatField name="tradein-field" value="10000" class="input-field"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="input-group">
+                    <ui:Label text="Loan Term" class="field-label"/>
+                    <ui:IntegerField name="loan-term-field" value="48" class="input-field"/>
+                    <ui:Label text="months" class="inline-suffix"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="input-group highlight">
+                    <ui:Label text="Financed Amount" class="field-label"/>
+                    <ui:Label name="financed-amount" text="$50,000" class="financed-value"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="slider-group">
+                <ui:VisualElement class="slider-header">
+                    <ui:Label text="Interest Rate (APR)" class="field-label"/>
+                    <ui:Label name="interest-rate-value" text="4.5%" class="slider-value"/>
+                </ui:VisualElement>
+                <ui:Slider name="interest-slider" low-value="0" high-value="15" value="4.5" class="custom-slider unity-slider__dragger"/>
+                <ui:VisualElement class="slider-range-labels">
+                    <ui:Label text="0%" class="range-min"/>
+                    <ui:Label text="15%" class="range-max"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="slider-group">
+                <ui:VisualElement class="slider-header">
+                    <ui:Label text="Balloon Payment" class="field-label"/>
+                    <ui:Label name="balloon-percent-value" text="0%" class="slider-value"/>
+                </ui:VisualElement>
+                <ui:Slider name="balloon-slider" low-value="0" high-value="50" value="0" class="custom-slider"/>
+                <ui:VisualElement class="slider-range-labels">
+                    <ui:Label text="0%" class="range-min"/>
+                    <ui:Label text="50%" class="range-max"/>
+                </ui:VisualElement>
+                <ui:Label name="balloon-dollar-value" text="($0)" class="balloon-dollar"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="payment-box">
+                <ui:Label text="Estimated Monthly Payment" class="payment-label"/>
+                <ui:Label name="monthly-payment" text="$1140" class="payment-value"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="balloon-info-container" class="balloon-container">
+                <ui:Label name="balloon-info" text="" class="balloon-info"/>
+            </ui:VisualElement>
+            <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
+            <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." class="footnote"/>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

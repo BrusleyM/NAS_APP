@@ -1,0 +1,16 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/LoginScreen.uss?fileID=7433441132597879392&amp;guid=337a8bdf53ad6482ca1ee9380b5a0e56&amp;type=3#LoginScreen"/>
+    <ui:VisualElement name="login-card" class="login-card">
+        <ui:Label text="Login" class="card-title"/>
+        <ui:VisualElement name="email_fields" class="input-group">
+            <ui:Label text="Email" class="field-label"/>
+            <ui:TextField name="email-field" placeholder="Enter email" class="input-field"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="password_fields" class="input-group">
+            <ui:Label text="Password" class="field-label"/>
+            <ui:TextField name="password-field" placeholder="Enter password" is-password="true" class="input-field" style="flex-grow: 0;"/>
+        </ui:VisualElement>
+        <ui:Button name="login-button" text="Login" class="gradient-button"/>
+        <ui:Label name="register-link-label" text="Don&apos;t have an account? &lt;link=&quot;register&quot;&gt;Register here&lt;/link&gt;" enable-rich-text="true" class="rich-text-link"/>
+    </ui:VisualElement>
+</ui:UXML>

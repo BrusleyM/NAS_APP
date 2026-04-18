@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/LoginScreen.uss" />
+    
+    <ui:VisualElement name="register-card" class="login-card">  <!-- reuse same card class -->
+        <ui:Label text="Register" class="card-title" />
+        
+        <!-- Email -->
+        <ui:VisualElement class="input-group">
+            <ui:Label text="Email" class="field-label" />
+            <ui:TextField name="email-field" placeholder="Enter email" class="input-field" />
+        </ui:VisualElement>
+        
+        <!-- Password -->
+        <ui:VisualElement class="input-group">
+            <ui:Label text="Password" class="field-label" />
+            <ui:TextField name="password-field" placeholder="Enter password" is-password="true" class="input-field" />
+        </ui:VisualElement>
+        
+        <!-- Confirm Password -->
+        <ui:VisualElement class="input-group">
+            <ui:Label text="Confirm Password" class="field-label" />
+            <ui:TextField name="confirm-password-field" placeholder="Re-enter password" is-password="true" class="input-field" />
+        </ui:VisualElement>
+        
+        <!-- Register button -->
+        <ui:Button name="register-button" text="Register" class="gradient-button" />
+        
+        <!-- Rich‑text link to Login -->
+        <ui:Label name="login-link-label"
+                  text="Already have an account? &lt;link=&quot;login&quot;&gt;Login here&lt;/link&gt;"
+                  enable-rich-text="true"
+                  class="rich-text-link" />
+    </ui:VisualElement>
+</ui:UXML>
