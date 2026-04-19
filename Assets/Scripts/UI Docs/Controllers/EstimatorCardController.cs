@@ -3,15 +3,16 @@ using UnityEngine.UIElements;
 using NAS.Core.Models;
 using NAS.Core.Interfaces;
 using NAS.Core.Services;
+using NAS.Core;
 
 namespace NAS.UI.Controllers
 {
     public class EstimatorCardController : MonoBehaviour
     {
         [SerializeField] private Label _retailPriceLabel;
-        [SerializeField] private FloatField _depositField;
-        [SerializeField] private FloatField _tradeInField;
-        [SerializeField] private IntegerField _loanTermField;
+        [SerializeField] private TextField _depositField;
+        [SerializeField] private TextField _tradeInField;
+        [SerializeField] private TextField _loanTermField;
         [SerializeField] private Label _financedAmountLabel;
         [SerializeField] private Slider _interestSlider;
         [SerializeField] private Label _interestValueLabel;
@@ -37,11 +38,19 @@ namespace NAS.UI.Controllers
         {
             _loanCalculator = new LoanCalculator();
             
-            _vehicle = new VehicleInfo
+            // Use selected car from GameManager if available, otherwise fallback to default
+            if (GameManager.Instance.SelectedCar != null)
             {
-                modelName = "Tesla Model S · Performance Trim",
-                retailPrice = 75000f
-            };
+                _vehicle = GameManager.Instance.SelectedCar;
+            }
+            else
+            {
+                _vehicle = new VehicleInfo
+                {
+                    modelName = "Tesla Model S · Performance Trim",
+                    retailPrice = 75000f
+                };
+            }
             
             _deposit = 0f;
             _tradeIn = 0f;
@@ -55,9 +64,9 @@ namespace NAS.UI.Controllers
             var root = uiDocument.rootVisualElement;
             
             if (_retailPriceLabel == null) _retailPriceLabel = root.Q<Label>("retail-price");
-            if (_depositField == null) _depositField = root.Q<FloatField>("deposit-field");
-            if (_tradeInField == null) _tradeInField = root.Q<FloatField>("tradein-field");
-            if (_loanTermField == null) _loanTermField = root.Q<IntegerField>("loan-term-field");
+            if (_depositField == null) _depositField = root.Q<TextField>("deposit-field");
+            if (_tradeInField == null) _tradeInField = root.Q<TextField>("tradein-field");
+            if (_loanTermField == null) _loanTermField = root.Q<TextField>("loan-term-field");
             if (_financedAmountLabel == null) _financedAmountLabel = root.Q<Label>("financed-amount");
             if (_interestSlider == null) _interestSlider = root.Q<Slider>("interest-slider");
             if (_interestValueLabel == null) _interestValueLabel = root.Q<Label>("interest-rate-value");
@@ -70,34 +79,47 @@ namespace NAS.UI.Controllers
             if (_sendButton == null) _sendButton = root.Q<Button>("send-button");
             if (_balloonContainer == null) _balloonContainer = root.Q<VisualElement>("balloon-info-container");
 
+            // Display retail price using the selected car's price
             _retailPriceLabel.text = $"R{_vehicle.retailPrice:N0}";
             
-            _depositField.value = _deposit;
-            _tradeInField.value = _tradeIn;
-            _loanTermField.value = _loanTerm;
+            _depositField.value = $"{_deposit}";
+            _tradeInField.value = $"{_tradeIn}";
+            _loanTermField.value = $"{_loanTerm}";
             _interestSlider.value = _interestRate;
             _balloonSlider.value = _balloonPercent;
             
-            _depositField.RegisterValueChangedCallback(evt => 
-            { 
-                _deposit = ValidateDeposit(evt.newValue); 
-                if (Mathf.Abs(_depositField.value - _deposit) > 0.01f) 
-                    _depositField.SetValueWithoutNotify(_deposit);
-                UpdateAll(); 
+            _depositField.RegisterValueChangedCallback(evt =>
+            {
+                var sanitized = SanitizeFloatInput(evt.newValue);
+                if (sanitized != evt.newValue)
+                    _depositField.SetValueWithoutNotify(sanitized);
+                if (float.TryParse(sanitized, out var value))
+                {
+                    _deposit = ValidateDeposit(value);
+                    UpdateAll();
+                }
             });
-            _tradeInField.RegisterValueChangedCallback(evt => 
-            { 
-                _tradeIn = ValidateTradeIn(evt.newValue); 
-                if (Mathf.Abs(_tradeInField.value - _tradeIn) > 0.01f) 
-                    _tradeInField.SetValueWithoutNotify(_tradeIn);
-                UpdateAll(); 
+            _tradeInField.RegisterValueChangedCallback(evt =>
+            {
+                var sanitized = SanitizeFloatInput(evt.newValue);
+                if (sanitized != evt.newValue)
+                    _tradeInField.SetValueWithoutNotify(sanitized);
+                if (float.TryParse(sanitized, out var value))
+                {
+                    _tradeIn = ValidateTradeIn(value);
+                    UpdateAll();
+                }
             });
-            _loanTermField.RegisterValueChangedCallback(evt => 
-            { 
-                _loanTerm = ValidateLoanTerm(evt.newValue); 
-                if (_loanTermField.value != _loanTerm) 
-                    _loanTermField.SetValueWithoutNotify(_loanTerm);
-                UpdateAll(); 
+            _loanTermField.RegisterValueChangedCallback(evt =>
+            {
+                var sanitized = SanitizeIntInput(evt.newValue);
+                if (sanitized != evt.newValue)
+                    _loanTermField.SetValueWithoutNotify(sanitized);
+                if (int.TryParse(sanitized, out var value))
+                {
+                    _loanTerm = ValidateLoanTerm(value);
+                    UpdateAll();
+                }
             });
             _interestSlider.RegisterValueChangedCallback(evt => 
             { 
@@ -123,6 +145,38 @@ namespace NAS.UI.Controllers
         private int ValidateLoanTerm(int value) => Mathf.Clamp(value, 1, 120);
         private float ValidateInterestRate(float value) => Mathf.Clamp(value, 0f, 30f);
         private float ValidateBalloonPercent(float value) => Mathf.Clamp(value, 0f, 50f);
+
+        private string SanitizeFloatInput(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+            bool hasDecimal = false;
+            var result = new System.Text.StringBuilder();
+            foreach (var c in input)
+            {
+                if (char.IsDigit(c))
+                    result.Append(c);
+                else if ((c == '.' || c == ',') && !hasDecimal)
+                {
+                    result.Append('.');
+                    hasDecimal = true;
+                }
+            }
+            return result.ToString();
+        }
+
+        private string SanitizeIntInput(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+            var result = new System.Text.StringBuilder();
+            foreach (var c in input)
+            {
+                if (char.IsDigit(c))
+                    result.Append(c);
+            }
+            return result.ToString();
+        }
 
         private void UpdateAll()
         {

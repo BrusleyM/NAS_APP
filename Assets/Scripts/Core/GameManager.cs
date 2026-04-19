@@ -3,6 +3,7 @@ using NAS.Storage;
 using NAS.Configuration;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using NAS.Core.Models;
 using UnityEngine;
 
 namespace NAS.Core
@@ -14,7 +15,12 @@ namespace NAS.Core
         [Header("Environment")]
         [Tooltip("If true, uses production Cognito settings; otherwise uses development basic credentials.")]
         [SerializeField] private bool _useProduction = false;
-
+        
+        [Header("Session")]
+        public User CurrentUser { get; set; }
+        public VehicleInfo SelectedCar { get; set; }
+        public bool ReturnToEstimator { get; set; } = false;
+        
         private IStorageService _storage;
 
         private void Awake()

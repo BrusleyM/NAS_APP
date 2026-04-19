@@ -1,0 +1,26 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/CarSelectionScreen.uss?fileID=7433441132597879392&amp;guid=c42ab439a095e44d2a33bd89f7e1a040&amp;type=3#CarSelectionScreen"/>
+    <ui:VisualElement name="car-selection-root" class="car-selection-root">
+        <ui:VisualElement name="header-section" class="header">
+            <ui:Label text="Select Your Car" class="title"/>
+            <ui:Label text="Choose a model to begin your AR experience" class="subtitle"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="tools-container" class="tools-container">
+            <ui:VisualElement name="types-container" class="dropdown-container">
+                <ui:Button name="type-dropdown-button" class="dropdown-button">
+                    <ui:Label name="selected-type-label" text="All Types" class="dropdown-text"/>
+                    <ui:Image name="dropdown-arrow" class="dropdown-arrow"/>
+                </ui:Button>
+                <ui:VisualElement name="dropdown-menu" class="dropdown-menu" style="display: none;"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="search-container" class="search-container">
+                <ui:Image name="search-icon" class="search-icon"/>
+                <ui:TextField name="search-field" placeholder="Search..." class="search-field"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:ScrollView name="cars-scroll-view" mode="Horizontal" class="cars-scroll-view">
+            <ui:VisualElement name="cars-container" class="cars-container" style="width: 90%;"/>
+        </ui:ScrollView>
+        <ui:Button name="start-ar-button" text="Start AR Experience" class="start-button"/>
+    </ui:VisualElement>
+</ui:UXML>

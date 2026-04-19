@@ -8,18 +8,18 @@
             <ui:Label name="retail-price" text="$75,000" class="info-value"/>
         </ui:VisualElement>
         <ui:ScrollView name="estimator-scroll" class="estimator-scroll">
-            <ui:VisualElement class="two-columns">
+            <ui:VisualElement name="VisualElement" class="two-columns">
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Deposit" class="field-label"/>
-                    <ui:FloatField name="deposit-field" value="15000" keyboard-type="NumberPad" class="input-field"/>
+                    <ui:TextField name="deposit-field" value="15000" keyboard-type="NumberPad" class="input-field"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Trade-In Value" class="field-label"/>
-                    <ui:FloatField name="tradein-field" value="10000" keyboard-type="NumberPad" class="input-field"/>
+                    <ui:TextField name="tradein-field" value="10000" keyboard-type="NumberPad" class="input-field"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Loan Term" class="field-label"/>
-                    <ui:IntegerField name="loan-term-field" value="48" keyboard-type="NumberPad" class="input-field"/>
+                    <ui:TextField name="loan-term-field" value="48" keyboard-type="NumberPad" class="input-field"/>
                     <ui:Label text="months" class="inline-suffix"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group highlight">
@@ -32,7 +32,7 @@
                     <ui:Label text="Interest Rate (APR)" class="field-label"/>
                     <ui:Label name="interest-rate-value" text="4.5%" class="slider-value"/>
                 </ui:VisualElement>
-                <ui:Slider name="interest-slider" low-value="0" high-value="15" value="4.5" class="custom-slider unity-slider__dragger"/>
+                <ui:Slider name="interest-slider" low-value="0" high-value="15" value="4.5" class="custom-slider"/>
                 <ui:VisualElement class="slider-range-labels">
                     <ui:Label text="0%" class="range-min"/>
                     <ui:Label text="15%" class="range-max"/>
@@ -54,8 +54,8 @@
                 <ui:Label text="Estimated Monthly Payment" class="payment-label"/>
                 <ui:Label name="monthly-payment" text="$1140" class="payment-value"/>
             </ui:VisualElement>
-            <ui:VisualElement name="balloon-info-container" class="balloon-container">
-                <ui:Label name="balloon-info" text="" class="balloon-info"/>
+            <ui:VisualElement name="balloon-info-container" class="balloon-container" style="justify-content: flex-start; align-items: center; padding-top: 2%; padding-bottom: 2%;">
+                <ui:Label name="balloon-info" class="balloon-info"/>
             </ui:VisualElement>
             <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
             <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." name="loan_interest_info" class="footnote"/>
