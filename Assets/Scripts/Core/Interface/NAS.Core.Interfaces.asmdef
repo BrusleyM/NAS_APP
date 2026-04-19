@@ -1,8 +1,9 @@
 {
-    "name": "NAS.Interfaces",
-    "rootNamespace": "NAS.Interfaces",
+    "name": "NAS.Core.Interfaces",
+    "rootNamespace": "NAS.Core.Interfaces",
     "references": [
-        "GUID:92703082f92b41ba80f0d6912de66115"
+        "GUID:92703082f92b41ba80f0d6912de66115",
+        "GUID:8ce3af45545a8490bba3d65b1ea590d9"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

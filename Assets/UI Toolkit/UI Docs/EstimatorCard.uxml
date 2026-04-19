@@ -11,15 +11,15 @@
             <ui:VisualElement class="two-columns">
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Deposit" class="field-label"/>
-                    <ui:FloatField name="deposit-field" value="15000" class="input-field"/>
+                    <ui:FloatField name="deposit-field" value="15000" keyboard-type="NumberPad" class="input-field"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Trade-In Value" class="field-label"/>
-                    <ui:FloatField name="tradein-field" value="10000" class="input-field"/>
+                    <ui:FloatField name="tradein-field" value="10000" keyboard-type="NumberPad" class="input-field"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group">
                     <ui:Label text="Loan Term" class="field-label"/>
-                    <ui:IntegerField name="loan-term-field" value="48" class="input-field"/>
+                    <ui:IntegerField name="loan-term-field" value="48" keyboard-type="NumberPad" class="input-field"/>
                     <ui:Label text="months" class="inline-suffix"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="input-group highlight">
@@ -58,7 +58,7 @@
                 <ui:Label name="balloon-info" text="" class="balloon-info"/>
             </ui:VisualElement>
             <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
-            <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." class="footnote"/>
+            <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." name="loan_interest_info" class="footnote"/>
         </ui:ScrollView>
     </ui:VisualElement>
 </ui:UXML>

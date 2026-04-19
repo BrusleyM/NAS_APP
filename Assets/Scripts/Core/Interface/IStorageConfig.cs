@@ -1,6 +1,6 @@
 using Amazon.S3;
 
-namespace NAS.Interfaces
+namespace NAS.Core.Interfaces
 {
     public interface IStorageConfig
     {

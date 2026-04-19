@@ -1,0 +1,17 @@
+{
+    "name": "NAS.UI",
+    "rootNamespace": "NAS.UI",
+    "references": [
+        "GUID:f43488eba97b34fec9e8ab2e1396d780",
+        "GUID:ae0328894cb5540559ca490c3b805069"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

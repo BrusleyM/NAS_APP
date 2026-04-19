@@ -1,0 +1,18 @@
+{
+    "name": "NAS.UI.Controllers",
+    "rootNamespace": "NAS.UI.Controllers",
+    "references": [
+        "GUID:8ce3af45545a8490bba3d65b1ea590d9",
+        "GUID:ae0328894cb5540559ca490c3b805069",
+        "GUID:4da429f151c894ef5860f4a0478bca6a"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

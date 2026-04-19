@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.XR.ARFoundation;

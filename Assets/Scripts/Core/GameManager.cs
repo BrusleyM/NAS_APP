@@ -1,4 +1,4 @@
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 using NAS.Storage;
 using NAS.Configuration;
 using System.Collections.Generic;

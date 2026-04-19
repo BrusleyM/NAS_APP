@@ -96,3 +96,7 @@
 .rich-text-link .link:hover {
     color: rgba(0, 212, 255, 0.7);
 }
+
+.last-input-group {
+    margin-bottom: 14%;
+}

@@ -1,5 +1,5 @@
 using NAS.Core;
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;

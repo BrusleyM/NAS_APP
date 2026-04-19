@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 
 namespace NAS.InputImplementation
 {
