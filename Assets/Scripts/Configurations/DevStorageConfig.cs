@@ -1,7 +1,7 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 using UnityEngine;
 
 namespace NAS.Configuration

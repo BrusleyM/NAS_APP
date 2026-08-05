@@ -1,0 +1,23 @@
+.parent-root {
+    flex-grow: 1;
+    position: relative;
+    height: 100%;
+}
+
+.background-image {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    filter: blur(150%);
+    -unity-background-scale-mode: scale-and-crop;
+    background-image: url("project://database/Assets/Textures/UI/image.png?fileID=2800000&guid=68532a1998de247caa106c73e74d2af5&type=3#image");
+}
+
+.center-container {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}

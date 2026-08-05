@@ -1,0 +1,177 @@
+/* Root – full screen, transparent background */
+.car-selection-root {
+    flex-grow: 1;
+    background-color: transparent;
+    flex-direction: column;
+    padding: 6% 5% 8% 5%;
+}
+
+/* Header */
+.header {
+    align-items: center;
+    margin-bottom: 8%;
+}
+.title {
+    font-size: 24px;
+    -unity-text-align: middle-center;
+    margin-bottom: 2%;
+    color: #C0C0C0;
+    -unity-font-style: bold;
+}
+.subtitle {
+    font-size: 12px;
+    -unity-text-align: middle-center;
+    color: rgba(192, 192, 192, 0.6);
+}
+
+/* Tools container (2 columns) */
+.tools-container {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 8%;
+}
+.dropdown-container, .search-container {
+    width: 48%;
+}
+
+/* Dropdown button (glassy) */
+.dropdown-button {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.2);
+    border-radius: 12px;
+    padding: 3% 4%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.dropdown-text {
+    font-size: 14px;
+    color: #C0C0C0;
+}
+.dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    background-color: rgba(192, 192, 192, 0.5);
+}
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: rgba(18, 18, 18, 0.95);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.3);
+    border-radius: 12px;
+    margin-top: 2%;
+}
+.dropdown-item {
+    padding: 3% 4%;
+    font-size: 14px;
+    color: #C0C0C0;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(192, 192, 192, 0.1);
+}
+.dropdown-item:hover {
+    background-color: rgba(0, 212, 255, 0.05);
+}
+.dropdown-item.selected {
+    color: #00D4FF;
+    background-color: rgba(0, 212, 255, 0.1);
+}
+.dropdown-item.last-dropdown-item {
+    border-bottom-width: 0;
+}
+
+/* Search bar */
+.search-container {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.2);
+    border-radius: 12px;
+    padding: 3% 4%;
+    flex-direction: row;
+    align-items: center;
+}
+.search-icon {
+    width: 16px;
+    height: 16px;
+    background-color: rgba(192, 192, 192, 0.5);
+    margin-right: 2%;
+}
+.search-field {
+    flex-grow: 1;
+    background-color: transparent;
+    border-width: 0;
+}
+.search-field .unity-text-field__input {
+    color: #C0C0C0;
+    font-size: 14px;
+    padding: 0;
+}
+
+/* Horizontal scroll view */
+.cars-scroll-view {
+    flex-grow: 1;
+    margin-bottom: 8%;
+}
+.cars-container {
+    flex-direction: row;
+    align-items: stretch;
+    height: 100%;
+}
+
+/* Car card – transparent, fixed width for consistent scrolling */
+.car-card {
+    width: 240px;
+    margin-right: 4%;
+    background-color: transparent;
+    border-width: 0;
+    padding: 0;
+    flex-direction: column;
+    align-items: center;
+}
+.car-image {
+    width: 100%;
+    height: 160px;
+    background-color: transparent;
+    margin-bottom: 4%;
+}
+.car-name {
+    font-size: 16px;
+    color: #C0C0C0;
+    margin-bottom: 2%;
+    -unity-text-align: middle-center;
+}
+.car-category {
+    font-size: 12px;
+    color: rgba(192, 192, 192, 0.6);
+    -unity-text-align: middle-center;
+}
+
+/* Optional: selected car highlight */
+.car-card.selected-car-card {
+    -unity-text-outline-width: 2px;
+    -unity-text-outline-color: #00D4FF;
+}
+
+/* Start button */
+.start-button {
+    background-color: rgba(0, 212, 255, 0.8);
+    border-width: 1px;
+    border-color: rgba(0, 212, 255, 0.5);
+    border-radius: 12px;
+    padding: 4%;
+    color: white;
+    font-size: 16px;
+    -unity-text-align: middle-center;
+    transition-property: background-color;
+    transition-duration: 0.2s;
+}
+.start-button:hover {
+    background-color: rgba(0, 150, 200, 0.9);
+}
+
+.unity-scroller {
+    display: none;
+}

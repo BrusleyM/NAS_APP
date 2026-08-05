@@ -1,4 +1,4 @@
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 
 namespace NAS.Storage
 {

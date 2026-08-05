@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/ParentPage.uss" />
+    
+    <ui:VisualElement name="parent-root" class="parent-root">
+        <!-- Background image fills the entire screen -->
+        <ui:Image name="background-image" class="background-image" />
+        
+        <!-- Centering container -->
+        <ui:VisualElement name="center-container" class="center-container">
+            <!-- The login card (or any child) will be placed here -->
+            <!--<ui:Template src="project://database/Assets/UI%20Toolkit/UI%20Docs/UXML/LoginCard.uxml" />-->
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

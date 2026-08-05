@@ -1,6 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
-using NAS.Interfaces;
+using NAS.Core.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;

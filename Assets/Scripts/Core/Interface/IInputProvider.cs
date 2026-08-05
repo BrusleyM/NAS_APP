@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace NAS.Interfaces
+namespace NAS.Core.Interfaces
 {
     public interface IInputProvider
     {

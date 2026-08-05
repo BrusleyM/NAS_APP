@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace NAS.Interfaces
+namespace NAS.Core.Interfaces
 {
     public interface IStorageService
     {

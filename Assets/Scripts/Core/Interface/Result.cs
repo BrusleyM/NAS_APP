@@ -1,4 +1,4 @@
-namespace NAS.Interfaces
+namespace NAS.Core.Interfaces
 {
     public class Result<T>
     {
