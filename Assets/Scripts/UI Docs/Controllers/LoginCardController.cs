@@ -1,10 +1,15 @@
 using UnityEngine;
 using UnityEngine.UIElements;
-using System;
 using UnityEngine.UIElements.Experimental;
+using NAS.Core.Events;
 
 namespace NAS.UI.Controllers
 {
+    /// <summary>
+    /// Purely a view. It reads the login form and publishes what happened —
+    /// it doesn't know or care who (AuthController) handles it, or who
+    /// (ParentPageController) navigates away afterwards.
+    /// </summary>
     public class LoginCardController : MonoBehaviour
     {
         [SerializeField] private TextField _emailField;
@@ -12,17 +17,13 @@ namespace NAS.UI.Controllers
         [SerializeField] private Button _loginButton;
         [SerializeField] private Label _richTextLabel;
 
-        public event Action<string, string> OnLogin;   // email, password
-        public event Action OnRegister;                // switch to register card
-
         private void OnEnable()
         {
             var uiDocument = GetComponent<UIDocument>();
             if (uiDocument == null) return;
 
             var root = uiDocument.rootVisualElement;
-            
-            // Find UI elements (or use serialized references)
+
             _emailField = root.Q<TextField>("email-field");
             _passwordField = root.Q<TextField>("password-field");
             _loginButton = root.Q<Button>("login-button");
@@ -37,18 +38,18 @@ namespace NAS.UI.Controllers
 
         private void OnLoginClicked()
         {
-            OnLogin?.Invoke(_emailField?.value, _passwordField?.value);
+            EventBus.Publish(new LoginRequestedEvent(_emailField?.value, _passwordField?.value));
         }
 
         private void OnLinkClicked(PointerUpLinkTagEvent evt)
         {
             if (evt.linkID == "register")
-                OnRegister?.Invoke();
+                EventBus.Publish(new NavigateToRegisterRequestedEvent());
         }
 
         private void OnDisable()
         {
-            _loginButton.clicked -= OnLoginClicked;
+            if (_loginButton != null) _loginButton.clicked -= OnLoginClicked;
             if (_richTextLabel != null)
                 _richTextLabel.UnregisterCallback<PointerUpLinkTagEvent>(OnLinkClicked);
         }

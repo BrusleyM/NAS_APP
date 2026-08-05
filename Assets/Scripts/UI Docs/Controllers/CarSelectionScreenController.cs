@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
-using System;
 using NAS.Core.Models;
-using NAS.Core;
+using NAS.Core.Events;
 
 namespace NAS.UI.Controllers
 {
+    /// <summary>
+    /// Purely a view over the car catalog. Publishes CarSelectedEvent when the
+    /// user starts AR — GameManager stores the selection, ParentPageController
+    /// navigates to the estimator. This controller knows about neither.
+    /// </summary>
     public class CarSelectionScreenController : MonoBehaviour
     {
         // UI elements
@@ -18,7 +22,9 @@ namespace NAS.UI.Controllers
         private ScrollView _carsScrollView;
         private VisualElement _carsContainer;
         private Button _startButton;
-
+        
+        
+        private EventCallback<ChangeEvent<string>> _onSearchChanged;
         // Data
         private List<CarData> _allCars;
         private List<CarData> _filteredCars;
@@ -28,9 +34,6 @@ namespace NAS.UI.Controllers
         private bool _isDropdownOpen = false;
 
         private readonly List<string> _carTypes = new List<string> { "All Types", "Sedan", "SUV", "Hatchback", "Van" };
-
-        // Event raised when a car is selected (for estimator flow)
-        public event Action<VehicleInfo> OnCarSelectedForEstimation;
 
         [System.Serializable]
         private class CarData
@@ -65,11 +68,13 @@ namespace NAS.UI.Controllers
 
             // Register events
             _typeDropdownButton.clicked += ToggleDropdown;
-            _searchField.RegisterValueChangedCallback(evt =>
+            // NEW
+            _onSearchChanged = evt =>
             {
                 _searchQuery = evt.newValue;
                 UpdateFilteredCars();
-            });
+            };
+            _searchField.RegisterValueChangedCallback(_onSearchChanged);
             _startButton.clicked += OnStartARClicked;
 
             // Initial load
@@ -192,7 +197,7 @@ namespace NAS.UI.Controllers
                 modelName = selectedCar.name,
                 retailPrice = GetPriceForCar(selectedCar.name)
             };
-            OnCarSelectedForEstimation?.Invoke(vehicle);
+            EventBus.Publish(new CarSelectedEvent(vehicle));
         }
 
         private float GetPriceForCar(string carName)
@@ -214,7 +219,8 @@ namespace NAS.UI.Controllers
         private void OnDisable()
         {
             if (_typeDropdownButton != null) _typeDropdownButton.clicked -= ToggleDropdown;
-            if (_searchField != null) _searchField.UnregisterValueChangedCallback(null);
+            if (_searchField != null && _onSearchChanged != null) 
+                _searchField.UnregisterValueChangedCallback(_onSearchChanged);
             if (_startButton != null) _startButton.clicked -= OnStartARClicked;
         }
     }

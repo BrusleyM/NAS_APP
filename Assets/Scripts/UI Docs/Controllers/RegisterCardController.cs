@@ -1,10 +1,14 @@
 using UnityEngine;
 using UnityEngine.UIElements;
-using System;
 using UnityEngine.UIElements.Experimental;
+using NAS.Core.Events;
 
 namespace NAS.UI.Controllers
 {
+    /// <summary>
+    /// Purely a view. Publishes what the user did — AuthController decides if
+    /// it's valid, ParentPageController decides where to go next.
+    /// </summary>
     public class RegisterCardController : MonoBehaviour
     {
         [SerializeField] private TextField _emailField;
@@ -13,16 +17,13 @@ namespace NAS.UI.Controllers
         [SerializeField] private Button _registerButton;
         [SerializeField] private Label _richTextLabel;
 
-        public event Action<string, string, string> OnRegister;   // email, password, confirm
-        public event Action OnLoginLink;                           // switch to login card
-
         private void OnEnable()
         {
             var uiDocument = GetComponent<UIDocument>();
             if (uiDocument == null) return;
 
             var root = uiDocument.rootVisualElement;
-            
+
             _emailField = root.Q<TextField>("email-field");
             _passwordField = root.Q<TextField>("password-field");
             _confirmPasswordField = root.Q<TextField>("confirm-password-field");
@@ -36,24 +37,23 @@ namespace NAS.UI.Controllers
                 _richTextLabel.RegisterCallback<PointerUpLinkTagEvent>(OnLinkClicked);
         }
 
-        void OnRegisterClicked()
+        private void OnRegisterClicked()
         {
-            OnRegister?.Invoke(
+            EventBus.Publish(new RegisterRequestedEvent(
                 _emailField?.value,
                 _passwordField?.value,
-                _confirmPasswordField?.value
-            );
+                _confirmPasswordField?.value));
         }
 
         private void OnLinkClicked(PointerUpLinkTagEvent evt)
         {
             if (evt.linkID == "login")
-                OnLoginLink?.Invoke();
+                EventBus.Publish(new NavigateToLoginRequestedEvent());
         }
 
         private void OnDisable()
         {
-            _registerButton.clicked -= OnRegisterClicked;
+            if (_registerButton != null) _registerButton.clicked -= OnRegisterClicked;
             if (_richTextLabel != null)
                 _richTextLabel.UnregisterCallback<PointerUpLinkTagEvent>(OnLinkClicked);
         }

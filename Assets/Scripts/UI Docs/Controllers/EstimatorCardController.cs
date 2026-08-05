@@ -3,6 +3,7 @@ using UnityEngine.UIElements;
 using NAS.Core.Models;
 using NAS.Core.Interfaces;
 using NAS.Core.Services;
+using NAS.Core.Events;
 using NAS.Core;
 
 namespace NAS.UI.Controllers
@@ -206,7 +207,12 @@ namespace NAS.UI.Controllers
 
         private void OnSendToDealer()
         {
-            Debug.Log($"Send to Dealer: Vehicle = {_vehicle.modelName}, Financed = {_financedAmountLabel.text}, Monthly = {_monthlyPaymentLabel.text}");
+            float financed = _vehicle.retailPrice - _deposit - _tradeIn;
+            if (financed < 0) financed = 0;
+            float balloonAmount = financed * (_balloonPercent / 100f);
+            float monthly = _loanCalculator.CalculateMonthlyPayment(financed, balloonAmount, _loanTerm, _interestRate);
+
+            EventBus.Publish(new EstimateSubmittedEvent(_vehicle, financed, monthly));
         }
 
         private void OnDisable()

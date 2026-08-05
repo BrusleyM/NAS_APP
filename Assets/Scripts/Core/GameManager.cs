@@ -1,4 +1,5 @@
 using NAS.Core.Interfaces;
+using NAS.Core.Events;
 using NAS.Storage;
 using NAS.Configuration;
 using System.Collections.Generic;
@@ -8,6 +9,12 @@ using UnityEngine;
 
 namespace NAS.Core
 {
+    /// <summary>
+    /// Holds session state and owns the storage service. It no longer has its
+    /// CurrentUser/SelectedCar properties set directly by whichever controller
+    /// happens to be handling a click — it derives them by listening to the
+    /// same domain events everything else reacts to.
+    /// </summary>
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
@@ -15,12 +22,12 @@ namespace NAS.Core
         [Header("Environment")]
         [Tooltip("If true, uses production Cognito settings; otherwise uses development basic credentials.")]
         [SerializeField] private bool _useProduction = false;
-        
+
         [Header("Session")]
-        public User CurrentUser { get; set; }
-        public VehicleInfo SelectedCar { get; set; }
+        public User CurrentUser { get; private set; }
+        public VehicleInfo SelectedCar { get; private set; }
         public bool ReturnToEstimator { get; set; } = false;
-        
+
         private IStorageService _storage;
 
         private void Awake()
@@ -36,35 +43,40 @@ namespace NAS.Core
             InitializeStorage();
         }
 
+        private void OnEnable()
+        {
+            EventBus.Subscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Subscribe<CarSelectedEvent>(OnCarSelected);
+            EventBus.Subscribe<ReturnToEstimatorRequestedEvent>(OnReturnToEstimatorRequested);
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Unsubscribe<CarSelectedEvent>(OnCarSelected);
+            EventBus.Unsubscribe<ReturnToEstimatorRequestedEvent>(OnReturnToEstimatorRequested);
+        }
+
+        private void OnAuthSucceeded(AuthSucceededEvent evt) => CurrentUser = evt.User;
+        private void OnCarSelected(CarSelectedEvent evt) => SelectedCar = evt.Vehicle;
+        private void OnReturnToEstimatorRequested(ReturnToEstimatorRequestedEvent evt) => ReturnToEstimator = true;
+
         private void InitializeStorage()
         {
-            IStorageConfig config = null;
-
-            /*if (_useProduction)
-            {
-                config = Resources.Load<ProdStorageConfig>("Config/ProdStorageConfig");
-                if (config == null)
-                    Debug.LogError("ProdStorageConfig not found in Resources/Config/!");
-            }
-            else
-            {
-                config = Resources.Load<DevStorageConfig>("Config/DevStorageConfig");
-                if (config == null)
-                    Debug.LogError("DevStorageConfig not found in Resources/Config/!");
-            }*/
-            config = Resources.Load<DevStorageConfig>("Config/DevStorageConfig");
+            IStorageConfig config = Resources.Load<DevStorageConfig>("Config/DevStorageConfig");
             if (config == null)
+            {
                 Debug.LogError("DevStorageConfig not found in Resources/Config/!");
-            if (config == null) return;
+                return;
+            }
 
-            _storage = /*_useProduction
-                ? new ProdStorageService(config)
-                : */new DevStorageService(config);
+            // Swap in ProdStorageService here once _useProduction actually branches again.
+            _storage = new DevStorageService(config);
 
             Debug.Log($"GameManager: Using {(_useProduction ? "PRODUCTION" : "DEVELOPMENT")} storage.");
         }
 
-        // Public storage methods
+        // Public storage methods — unchanged.
         public async Task<Result> UploadModel(string localFilePath, string modelKey)
         {
             if (_storage == null) return Result.Failure("Storage not initialized.");

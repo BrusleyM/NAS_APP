@@ -1,11 +1,18 @@
 using UnityEngine;
 using UnityEngine.UIElements;
-using System;
 using NAS.Core;
-using NAS.Core.Models;
+using NAS.Core.Events;
 
 namespace NAS.UI.Controllers
 {
+    /// <summary>
+    /// Owns screen navigation ONLY. It reacts to domain events to decide which
+    /// card to show next — it has no idea how login, registration, or auth
+    /// validation actually work, and it no longer manually wires callbacks
+    /// onto whichever card it just instantiated. Any future system (analytics,
+    /// GameManager, a tutorial overlay, etc.) can react to the same events
+    /// independently, without ParentPageController knowing they exist.
+    /// </summary>
     public class ParentPageController : MonoBehaviour
     {
         [SerializeField] private VisualTreeAsset _loginCardUxml;
@@ -16,7 +23,6 @@ namespace NAS.UI.Controllers
 
         private UIDocument _uiDocument;
         private VisualElement _cardContainer;
-        private CarSelectionScreenController _carSelectionController;
 
         private void OnEnable()
         {
@@ -24,27 +30,25 @@ namespace NAS.UI.Controllers
             if (_uiDocument == null)
                 _uiDocument = gameObject.AddComponent<UIDocument>();
 
-            /* var parentUxml = Resources.Load<VisualTreeAsset>("ParentPage");
-             if (parentUxml == null)
-             {
-                 Debug.LogError("ParentPage UXML not found in Resources!");
-                 return;
-             }
-             parentUxml.CloneTree(_uiDocument.rootVisualElement);*/
-
             var root = _uiDocument.rootVisualElement;
             _cardContainer = root.Q<VisualElement>("center-container");
-            
-            SetBackgroundImage(root);
 
-            // Decide which screen to show first
-            if (GameManager.Instance.CurrentUser != null && GameManager.Instance.SelectedCar != null)
+            SetBackgroundImage(root);
+            SubscribeToFlowEvents();
+
+            DecideInitialScreen();
+        }
+
+        private void DecideInitialScreen()
+        {
+            var session = GameManager.Instance;
+
+            if (session.CurrentUser != null && session.SelectedCar != null)
             {
-                // If returning from AR with estimator flag, show estimator
-                if (GameManager.Instance.ReturnToEstimator)
+                if (session.ReturnToEstimator)
                 {
                     ShowEstimatorCard();
-                    GameManager.Instance.ReturnToEstimator = false;
+                    session.ReturnToEstimator = false;
                 }
                 else
                 {
@@ -56,6 +60,33 @@ namespace NAS.UI.Controllers
                 ShowLoginCard();
             }
         }
+
+        private void SubscribeToFlowEvents()
+        {
+            EventBus.Subscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Subscribe<NavigateToRegisterRequestedEvent>(OnNavigateToRegister);
+            EventBus.Subscribe<NavigateToLoginRequestedEvent>(OnNavigateToLogin);
+            EventBus.Subscribe<CarSelectedEvent>(OnCarSelected);
+        }
+
+        private void UnsubscribeFromFlowEvents()
+        {
+            EventBus.Unsubscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Unsubscribe<NavigateToRegisterRequestedEvent>(OnNavigateToRegister);
+            EventBus.Unsubscribe<NavigateToLoginRequestedEvent>(OnNavigateToLogin);
+            EventBus.Unsubscribe<CarSelectedEvent>(OnCarSelected);
+        }
+
+        // NOTE on ordering: GameManager also subscribes to AuthSucceededEvent/CarSelectedEvent
+        // to update CurrentUser/SelectedCar. Because GameManager is a persistent singleton
+        // created before this screen exists, it subscribes first, so by the time these
+        // handlers run here, GameManager's session state is already up to date. If you ever
+        // reorder initialization, don't rely on that — read data straight off the event
+        // payload instead of back through GameManager.
+        private void OnAuthSucceeded(AuthSucceededEvent evt) => ShowCarSelectionScreen();
+        private void OnNavigateToRegister(NavigateToRegisterRequestedEvent evt) => ShowRegisterCard();
+        private void OnNavigateToLogin(NavigateToLoginRequestedEvent evt) => ShowLoginCard();
+        private void OnCarSelected(CarSelectedEvent evt) => ShowEstimatorCard();
 
         private void SetBackgroundImage(VisualElement root)
         {
@@ -74,83 +105,57 @@ namespace NAS.UI.Controllers
         {
             if (_loginCardUxml == null) return;
             _cardContainer.Clear();
-            RemoveControllers();
+            RemoveCardControllers();
             _loginCardUxml.CloneTree(_cardContainer);
-            var loginController = gameObject.AddComponent<LoginCardController>();
-            loginController.OnLogin += HandleLogin;
-            loginController.OnRegister += ShowRegisterCard;
+            gameObject.AddComponent<LoginCardController>();
         }
 
         public void ShowRegisterCard()
         {
             if (_registerCardUxml == null) return;
             _cardContainer.Clear();
-            RemoveControllers();
+            RemoveCardControllers();
             _registerCardUxml.CloneTree(_cardContainer);
-            var registerController = gameObject.AddComponent<RegisterCardController>();
-            registerController.OnRegister += HandleRegister;
-            registerController.OnLoginLink += ShowLoginCard;
+            gameObject.AddComponent<RegisterCardController>();
         }
 
         public void ShowCarSelectionScreen()
         {
             if (_carSelectionCardUxml == null) return;
             _cardContainer.Clear();
-            RemoveControllers();
+            RemoveCardControllers();
             _carSelectionCardUxml.CloneTree(_cardContainer);
-            _carSelectionController = gameObject.AddComponent<CarSelectionScreenController>();
-            _carSelectionController.OnCarSelectedForEstimation += HandleCarSelected;
+            gameObject.AddComponent<CarSelectionScreenController>();
         }
 
         public void ShowEstimatorCard()
         {
             if (_estimatorCardUxml == null) return;
             _cardContainer.Clear();
-            RemoveControllers();
+            RemoveCardControllers();
             _estimatorCardUxml.CloneTree(_cardContainer);
             gameObject.AddComponent<EstimatorCardController>();
         }
 
-        private void HandleLogin(string email, string password)
-        {
-            // Temporary: create a dummy user
-            GameManager.Instance.CurrentUser = new User { email = email, displayName = email };
-            ShowCarSelectionScreen();
-        }
-
-        private void HandleRegister(string email, string password, string confirm)
-        {
-            GameManager.Instance.CurrentUser = new User { email = email, displayName = email };
-            ShowCarSelectionScreen();
-        }
-
-        private void HandleCarSelected(VehicleInfo selectedCar)
-        {
-            GameManager.Instance.SelectedCar = selectedCar;
-            ShowEstimatorCard();
-        }
-
-        private void RemoveControllers()
+        private void RemoveCardControllers()
         {
             var loginCtrl = GetComponent<LoginCardController>();
             if (loginCtrl != null) Destroy(loginCtrl);
-            
+
             var registerCtrl = GetComponent<RegisterCardController>();
             if (registerCtrl != null) Destroy(registerCtrl);
-            
+
+            var carSelectionCtrl = GetComponent<CarSelectionScreenController>();
+            if (carSelectionCtrl != null) Destroy(carSelectionCtrl);
+
             var estimatorCtrl = GetComponent<EstimatorCardController>();
             if (estimatorCtrl != null) Destroy(estimatorCtrl);
-            
-            if (_carSelectionController != null)
-            {
-                _carSelectionController.OnCarSelectedForEstimation -= HandleCarSelected;
-                Destroy(_carSelectionController);
-            }
         }
 
         private void OnDisable()
         {
-            RemoveControllers();
+            UnsubscribeFromFlowEvents();
+            RemoveCardControllers();
         }
     }
 }
