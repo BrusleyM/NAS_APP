@@ -19,6 +19,7 @@ namespace NAS.UI.Controllers
         [SerializeField] private VisualTreeAsset _registerCardUxml;
         [SerializeField] private VisualTreeAsset _carSelectionCardUxml;
         [SerializeField] private VisualTreeAsset _estimatorCardUxml;
+        [SerializeField] private VisualTreeAsset _carCardUxml;
         [SerializeField] private string _backgroundImagePath = "Assets/Textures/UI/background.png";
 
         private UIDocument _uiDocument;
@@ -125,7 +126,8 @@ namespace NAS.UI.Controllers
             _cardContainer.Clear();
             RemoveCardControllers();
             _carSelectionCardUxml.CloneTree(_cardContainer);
-            gameObject.AddComponent<CarSelectionScreenController>();
+            var carSelectionCtrl = gameObject.AddComponent<CarSelectionScreenController>();
+            carSelectionCtrl.Initialize(_carCardUxml);
         }
 
         public void ShowEstimatorCard()

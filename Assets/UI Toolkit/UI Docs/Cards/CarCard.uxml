@@ -1,0 +1,10 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/CarSelectionScreen.uss?fileID=7433441132597879392&amp;guid=c42ab439a095e44d2a33bd89f7e1a040&amp;type=3#CarSelectionScreen"/>
+    <ui:VisualElement name="car_card" class="car-card" style="flex-grow: 1; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; width: 80%;">
+        <ui:Image name="thumbnail" class="car-image" style="height: 80%;"/>
+        <ui:VisualElement name="details" style="height: 20%; align-items: center; justify-content: center;">
+            <ui:Label text="BMW: M3" name="name" class="car-name" style="-unity-font-style: bold; font-size: 14%; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;"/>
+            <ui:Label text="sedan" name="type" class="car-category" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
