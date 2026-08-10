@@ -100,9 +100,9 @@ unless a future staff/kiosk mode explicitly requires it.
 
 ## Related project
 
-The backend source is located at:
+The backend source is available at:
 
-`/Users/neoxr/Documents/Projects/NAS_Backend`
+https://github.com/BrusleyM/NEO_AR_Showroom_Backend.git
 
 Its README describes the PostgreSQL setup, migrations, and available API
 endpoints.
