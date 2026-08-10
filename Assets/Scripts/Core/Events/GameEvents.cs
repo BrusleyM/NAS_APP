@@ -19,11 +19,18 @@ namespace NAS.Core.Events
     /// <summary>Raised by RegisterCardController when the user taps "Register".</summary>
     public readonly struct RegisterRequestedEvent
     {
+        public readonly string FirstName;
+        public readonly string LastName;
+        public readonly string CellNumber;
         public readonly string Email;
         public readonly string Password;
         public readonly string ConfirmPassword;
-        public RegisterRequestedEvent(string email, string password, string confirmPassword)
+
+        public RegisterRequestedEvent(string firstName, string lastName, string cellNumber, string email, string password, string confirmPassword)
         {
+            FirstName = firstName;
+            LastName = lastName;
+            CellNumber = cellNumber;
             Email = email;
             Password = password;
             ConfirmPassword = confirmPassword;

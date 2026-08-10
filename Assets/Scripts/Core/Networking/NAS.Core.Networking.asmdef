@@ -1,0 +1,16 @@
+{
+    "name": "NAS.Core.Networking",
+    "rootNamespace": "NAS.Core.Networking",
+    "references": [
+        "GUID:00fe0a699a9874c13bb10b2d7bc0334f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -11,7 +11,10 @@ namespace NAS.UI.Controllers
     /// </summary>
     public class RegisterCardController : MonoBehaviour
     {
-        [SerializeField] private TextField _emailField;
+                [SerializeField] private TextField _firstNameField;
+        [SerializeField] private TextField _lastNameField;
+        [SerializeField] private TextField _cellNumberField;
+[SerializeField] private TextField _emailField;
         [SerializeField] private TextField _passwordField;
         [SerializeField] private TextField _confirmPasswordField;
         [SerializeField] private Button _registerButton;
@@ -24,7 +27,10 @@ namespace NAS.UI.Controllers
 
             var root = uiDocument.rootVisualElement;
 
-            _emailField = root.Q<TextField>("email-field");
+                        _firstNameField = root.Q<TextField>("first-name-field");
+            _lastNameField = root.Q<TextField>("last-name-field");
+            _cellNumberField = root.Q<TextField>("cell-number-field");
+_emailField = root.Q<TextField>("email-field");
             _passwordField = root.Q<TextField>("password-field");
             _confirmPasswordField = root.Q<TextField>("confirm-password-field");
             _registerButton = root.Q<Button>("register-button");
@@ -37,9 +43,12 @@ namespace NAS.UI.Controllers
                 _richTextLabel.RegisterCallback<PointerUpLinkTagEvent>(OnLinkClicked);
         }
 
-        private void OnRegisterClicked()
+private void OnRegisterClicked()
         {
             EventBus.Publish(new RegisterRequestedEvent(
+                _firstNameField?.value,
+                _lastNameField?.value,
+                _cellNumberField?.value,
                 _emailField?.value,
                 _passwordField?.value,
                 _confirmPasswordField?.value));

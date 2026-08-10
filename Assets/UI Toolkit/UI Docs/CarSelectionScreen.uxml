@@ -9,19 +9,19 @@
             <ui:VisualElement name="types-container" class="dropdown-container">
                 <ui:Button name="type-dropdown-button" class="dropdown-button">
                     <ui:Label name="selected-type-label" text="All Types" class="dropdown-text"/>
-                    <ui:Image name="dropdown-arrow" class="dropdown-arrow"/>
+                    <ui:Image name="dropdown-arrow" class="dropdown-arrow" style="background-image: url(&quot;project://database/Assets/Textures/icons/down-chevron.svg?fileID=7388822144124034973&amp;guid=d6de69855b2e64284bf22e9bebdafea5&amp;type=3#down-chevron&quot;); background-color: rgba(192, 192, 192, 0); -unity-background-image-tint-color: rgb(0, 158, 180); background-size: 80% 60%; transition-property: rotate; transition-duration: 0.5s; transition-timing-function: ease-in-out;"/>
                 </ui:Button>
-                <ui:VisualElement name="dropdown-menu" class="dropdown-menu" style="display: none;"/>
             </ui:VisualElement>
             <ui:VisualElement name="search-container" class="search-container">
-                <ui:Image name="search-icon" class="search-icon"/>
-                <ui:TextField name="search-field" placeholder="Search..." class="search-field"/>
+                <ui:Image name="search-icon" class="search-icon" style="margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; background-image: url(&quot;project://database/Assets/Textures/icons/magnifying-glass.svg?fileID=7388822144124034973&amp;guid=15ce48fdfb1df4985a0d00beec64037b&amp;type=3#magnifying-glass&quot;); background-color: rgba(192, 192, 192, 0); -unity-background-image-tint-color: rgb(54, 134, 188);"/>
+                <ui:TextField name="search-field" placeholder="Search..." label="" placeholder-text="search..." class="search-field"/>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:Image name="carImage" style="height: 30%; width: auto;"/>
-        <ui:ScrollView name="cars-scroll-view" mode="Horizontal" elasticity="1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" class="cars-scroll-view">
-            <ui:VisualElement name="cars-container" class="cars-container" style="width: 90%;"/>
-        </ui:ScrollView>
+        <ui:VisualElement name="cars-scroll-view" class="cars-scroll-view" style="align-items: center; justify-content: center;">
+            <ui:VisualElement name="cars-container" class="cars-container" style="align-content: flex-start; align-items: stretch; width: 100%;"/>
+        </ui:VisualElement>
+        <ui:Label name="empty-state-label" text="No cars match your search." class="empty-state" style="display: none;"/>
         <ui:Button name="start-ar-button" text="Start AR Experience" class="start-button"/>
+        <ui:VisualElement name="dropdown-menu" class="dropdown-menu" style="display: none;"/>
     </ui:VisualElement>
 </ui:UXML>
