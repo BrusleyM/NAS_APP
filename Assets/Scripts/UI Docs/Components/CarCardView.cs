@@ -27,11 +27,11 @@ namespace NAS.UI.Components
             _typeLabel = _root.Q<Label>("type");
         }
 
-        public void SetCar(CarData car, int carIndex)
+public void SetCar(CarData car, int carIndex)
         {
             BoundCarIndex = carIndex;
             _root.RemoveFromClassList("car-card--hidden");
-            _root.style.display = DisplayStyle.Flex;
+            _root.style.visibility = Visibility.Visible;
 
             if (_nameLabel != null)
                 _nameLabel.text = car.carName;
@@ -43,11 +43,17 @@ namespace NAS.UI.Components
                 _thumbnail.image = car.image;
         }
 
-        public void SetEmpty()
+public void SetEmpty()
         {
             BoundCarIndex = -1;
             _root.AddToClassList("car-card--hidden");
-            _root.style.display = DisplayStyle.None;
+            // visibility:hidden (not display:none) so this slot still reserves its
+            // layout space — with 3 symmetric slots, justify-content:center on the
+            // row naturally centers the middle one. display:none would remove this
+            // slot from layout entirely at a boundary (no prev/next car), leaving
+            // only 2 children, which breaks that symmetry and shows half of each
+            // remaining card instead of one centered card.
+            _root.style.visibility = Visibility.Hidden;
         }
 
         public void SetSelected(bool selected)

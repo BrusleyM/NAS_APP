@@ -3,6 +3,8 @@ using NAS.Core.Auth.Dtos;
 using NAS.Core.Events;
 using NAS.Core.Models;
 using NAS.Core.Networking;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace NAS.Core.Auth
 {
@@ -19,6 +21,9 @@ namespace NAS.Core.Auth
         private ICustomerAuthApi _authApi;
         private AuthSession _session;
         private bool _requestInProgress;
+
+        private static readonly Regex EmailRegex = new Regex(@"^[^\s@]+@[^\s@]+\.[^\s@]+$", RegexOptions.Compiled);
+        private static readonly Regex CellNumberRegex = new Regex(@"^\+?[\d\s\-()]{7,15}$", RegexOptions.Compiled);
 
         public AuthSession Session => _session;
 
@@ -47,7 +52,7 @@ namespace NAS.Core.Auth
             EventBus.Unsubscribe<RegisterRequestedEvent>(HandleRegisterRequested);
         }
 
-        private void HandleLoginRequested(LoginRequestedEvent evt)
+private void HandleLoginRequested(LoginRequestedEvent evt)
         {
             if (_requestInProgress)
             {
@@ -55,9 +60,21 @@ namespace NAS.Core.Auth
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(evt.Email) || string.IsNullOrWhiteSpace(evt.Password))
+            var errors = new Dictionary<string, string>();
+
+            if (string.IsNullOrWhiteSpace(evt.Email))
+                errors["email"] = "Email is required.";
+            else if (!EmailRegex.IsMatch(evt.Email))
+                errors["email"] = "Enter a valid email address.";
+
+            if (string.IsNullOrWhiteSpace(evt.Password))
+                errors["password"] = "Password is required.";
+            else if (evt.Password.Length < 6)
+                errors["password"] = "Password must be at least 6 characters.";
+
+            if (errors.Count > 0)
             {
-                PublishFailure("Email and password are required.");
+                PublishFieldErrors(errors);
                 return;
             }
 
@@ -76,7 +93,7 @@ namespace NAS.Core.Auth
             }, HandleApiResult);
         }
 
-        private void HandleRegisterRequested(RegisterRequestedEvent evt)
+private void HandleRegisterRequested(RegisterRequestedEvent evt)
         {
             if (_requestInProgress)
             {
@@ -84,19 +101,37 @@ namespace NAS.Core.Auth
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(evt.FirstName) ||
-                string.IsNullOrWhiteSpace(evt.LastName) ||
-                string.IsNullOrWhiteSpace(evt.CellNumber) ||
-                string.IsNullOrWhiteSpace(evt.Email) ||
-                string.IsNullOrWhiteSpace(evt.Password))
-            {
-                PublishFailure("First name, last name, phone, email, and password are required.");
-                return;
-            }
+            var errors = new Dictionary<string, string>();
 
-            if (evt.Password != evt.ConfirmPassword)
+            if (string.IsNullOrWhiteSpace(evt.FirstName))
+                errors["firstName"] = "First name is required.";
+
+            if (string.IsNullOrWhiteSpace(evt.LastName))
+                errors["lastName"] = "Last name is required.";
+
+            if (string.IsNullOrWhiteSpace(evt.CellNumber))
+                errors["cellNumber"] = "Cell number is required.";
+            else if (!CellNumberRegex.IsMatch(evt.CellNumber))
+                errors["cellNumber"] = "Enter a valid cell number.";
+
+            if (string.IsNullOrWhiteSpace(evt.Email))
+                errors["email"] = "Email is required.";
+            else if (!EmailRegex.IsMatch(evt.Email))
+                errors["email"] = "Enter a valid email address.";
+
+            if (string.IsNullOrWhiteSpace(evt.Password))
+                errors["password"] = "Password is required.";
+            else if (evt.Password.Length < 6)
+                errors["password"] = "Password must be at least 6 characters.";
+
+            if (string.IsNullOrWhiteSpace(evt.ConfirmPassword))
+                errors["confirmPassword"] = "Please confirm your password.";
+            else if (evt.ConfirmPassword != evt.Password)
+                errors["confirmPassword"] = "Passwords do not match.";
+
+            if (errors.Count > 0)
             {
-                PublishFailure("Passwords do not match.");
+                PublishFieldErrors(errors);
                 return;
             }
 
@@ -153,5 +188,12 @@ namespace NAS.Core.Auth
             Debug.LogWarning($"{LogPrefix} Auth flow stopped: {reason}");
             EventBus.Publish(new AuthFailedEvent(reason));
         }
-    }
+    
+
+private static void PublishFieldErrors(Dictionary<string, string> errors)
+        {
+            Debug.LogWarning($"{LogPrefix} Validation failed: {string.Join(", ", errors.Values)}");
+            EventBus.Publish(new AuthFailedEvent(null, errors));
+        }
+}
 }

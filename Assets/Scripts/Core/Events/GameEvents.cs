@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NAS.Core.Models;
 
 namespace NAS.Core.Events
@@ -47,8 +48,16 @@ namespace NAS.Core.Events
     /// <summary>Raised by AuthController when login or registration fails validation/the backend.</summary>
     public readonly struct AuthFailedEvent
     {
+        /// <summary>General/non-field-specific error (e.g. from the backend: wrong credentials, network error).</summary>
         public readonly string Reason;
-        public AuthFailedEvent(string reason) => Reason = reason;
+        /// <summary>Per-field validation errors (e.g. "email" -> "Enter a valid email address."). Null for a general/backend failure instead.</summary>
+        public readonly IReadOnlyDictionary<string, string> FieldErrors;
+
+        public AuthFailedEvent(string reason, IReadOnlyDictionary<string, string> fieldErrors = null)
+        {
+            Reason = reason;
+            FieldErrors = fieldErrors;
+        }
     }
 
     // ---- Navigation --------------------------------------------------

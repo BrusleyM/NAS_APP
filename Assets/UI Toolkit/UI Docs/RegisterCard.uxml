@@ -5,43 +5,64 @@
          xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/LoginScreen.uss" />
 
-    <ui:VisualElement name="register-card" class="login-card">
+    <ui:VisualElement name="register-card" class="login-card" style="justify-content: center;">
         <ui:Label text="Register" class="card-title" />
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="First name" class="field-label" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="First name" class="field-label" />
+            </ui:VisualElement>
             <ui:TextField name="first-name-field" placeholder="Enter first name" class="input-field" />
+            <ui:Label name="first-name-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="Last name" class="field-label" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="Last name" class="field-label" />
+            </ui:VisualElement>
             <ui:TextField name="last-name-field" placeholder="Enter last name" class="input-field" />
+            <ui:Label name="last-name-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="Phone" class="field-label" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="Phone" class="field-label" />
+            </ui:VisualElement>
             <ui:TextField name="cell-number-field" placeholder="Enter phone number" class="input-field" />
+            <ui:Label name="cell-number-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="Email" class="field-label" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="Email" class="field-label" />
+            </ui:VisualElement>
             <ui:TextField name="email-field" placeholder="Enter email" class="input-field" />
+            <ui:Label name="email-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="Password" class="field-label" />
-            <ui:TextField name="password-field" placeholder="Enter password" is-password="true" class="input-field" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="Password" class="field-label" />
+                <ui:Button name="password-toggle-button" class="password-toggle" />
+            </ui:VisualElement>
+            <ui:TextField name="password-field" placeholder="Enter password" is-password="true" class="input-field" style="flex-grow: 1;" />
+            <ui:Label name="password-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
         <ui:VisualElement class="input-group">
-            <ui:Label text="Confirm Password" class="field-label" />
-            <ui:TextField name="confirm-password-field" placeholder="Re-enter password" is-password="true" class="input-field" />
+            <ui:VisualElement class="field-label-row">
+                <ui:Label text="Confirm Password" class="field-label" />
+                <ui:Button name="confirm-password-toggle-button" class="password-toggle" />
+            </ui:VisualElement>
+            <ui:TextField name="confirm-password-field" placeholder="Re-enter password" is-password="true" class="input-field" style="flex-grow: 1;" />
+            <ui:Label name="confirm-password-error-label" class="field-error" style="display: none;" />
         </ui:VisualElement>
 
-        <ui:Button name="register-button" text="Register" class="gradient-button" />
+        <ui:Label name="register-error-label" class="form-error" style="display: none;" />
+        <ui:Button name="register-button" text="Register" class="gradient-button" style="margin-top: 8px;" />
 
         <ui:Label name="login-link-label"
-                  text="Already have an account? &lt;link=&quot;login&quot;&gt;Login here&lt;/link&gt;"
+                  text="Already have an account? &lt;link=&quot;login&quot;&gt;&lt;color=#00D4FF&gt;Login here&lt;/color&gt;&lt;/link&gt;"
                   enable-rich-text="true"
                   class="rich-text-link" />
     </ui:VisualElement>

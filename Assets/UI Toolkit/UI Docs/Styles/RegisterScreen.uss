@@ -51,7 +51,6 @@
     padding: 3% 4%;
     color: rgb(192, 192, 192);
     font-size: 14px;
-    transition-property: border-color;
     transition-duration: 0.2s;
 }
 
@@ -70,7 +69,6 @@
     font-size: 14px;
     -unity-text-align: middle-center;
     margin-bottom: 0;
-    transition-property: background-color;
     transition-duration: 0.2s;
 }
 
@@ -88,11 +86,9 @@
 }
 
 .rich-text-link .link {
-    color: rgb(35, 35, 255);
-    border-bottom-width: 1px;
-    cursor: link;
+    color: rgb(0, 212, 255);
 }
 
 .rich-text-link .link:hover {
-    color: rgba(0, 212, 255, 0.7);
+    color: rgba(0, 212, 255, 0.8);
 }
