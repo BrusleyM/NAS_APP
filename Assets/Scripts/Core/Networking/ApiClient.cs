@@ -9,10 +9,20 @@ namespace NAS.Core.Networking
     public sealed class ApiClient
     {
         private readonly ApiSettings _settings;
+        private readonly bool _trustAnyCertificate;
 
-        public ApiClient(ApiSettings settings)
+        /// <param name="trustAnyCertificate">
+        /// Skips UnityWebRequest's TLS certificate validation entirely via
+        /// AcceptAllCertificatesHandler. UnityWebRequest validates against
+        /// UnityTls's own bundled CA list, not the OS/Keychain trust store -
+        /// so mkcert's locally-installed CA (enough for curl/Safari) has no
+        /// effect here. Only ever pass true for the optional local nginx
+        /// HTTPS proxy (NAS_Backend/nginx/README.md), never a real endpoint.
+        /// </param>
+        public ApiClient(ApiSettings settings, bool trustAnyCertificate = false)
         {
             _settings = settings;
+            _trustAnyCertificate = trustAnyCertificate;
         }
 
         public IEnumerator PostJson<TRequest, TResponse>(string path, TRequest payload, Action<ApiResult<TResponse>> completed)
@@ -25,6 +35,11 @@ namespace NAS.Core.Networking
             };
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Accept", "application/json");
+
+            if (_trustAnyCertificate)
+            {
+                request.certificateHandler = new AcceptAllCertificatesHandler();
+            }
 
             yield return request.SendWebRequest();
 

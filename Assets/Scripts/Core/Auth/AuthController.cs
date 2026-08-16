@@ -5,6 +5,7 @@ using NAS.Core.Models;
 using NAS.Core.Networking;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using NAS.Core;
 
 namespace NAS.Core.Auth
 {
@@ -16,7 +17,11 @@ namespace NAS.Core.Auth
     {
         private const string LogPrefix = "[NAS Auth]";
 
+        [Tooltip("Used when GameManager.CurrentEnvironment is Local (the default).")]
         [SerializeField] private ApiSettings _apiSettings;
+
+        [Tooltip("Used when GameManager.CurrentEnvironment is ApiDomain (see GameManager's own Environment field for the full explanation). Not selected here - AuthController no longer owns its own toggle, GameManager does, so there's a single project-wide switch instead of one per script that has to be kept in sync by hand.")]
+        [SerializeField] private ApiSettings _apiDomainSettings;
 
         private ICustomerAuthApi _authApi;
         private AuthSession _session;
@@ -27,17 +32,46 @@ namespace NAS.Core.Auth
 
         public AuthSession Session => _session;
 
-        private void Awake()
+        private void Start()
         {
-            if (_apiSettings == null)
+            // Reads GameManager.Instance here, not in Awake() - Unity doesn't
+            // guarantee Awake() order across different GameObjects, but Start()
+            // is guaranteed to run only after every object's Awake() has, so
+            // GameManager.Instance is reliably set by this point.
+            var environment = GameManager.Instance != null
+                ? GameManager.Instance.CurrentEnvironment
+                : AppEnvironment.Local;
+
+            var settings = _apiSettings;
+            var usingApiDomain = false;
+
+            if (environment == AppEnvironment.ApiDomain)
+            {
+                if (_apiDomainSettings != null)
+                {
+                    settings = _apiDomainSettings;
+                    usingApiDomain = true;
+                }
+                else
+                {
+                    Debug.LogWarning($"{LogPrefix} GameManager.CurrentEnvironment is ApiDomain but _apiDomainSettings is not assigned. Falling back to _apiSettings.");
+                }
+            }
+
+            if (settings == null)
             {
                 Debug.LogError($"{LogPrefix} ApiSettings is missing on AuthController.");
                 return;
             }
 
-            _session = new AuthSession(new TokenStorage(_apiSettings.PersistToken));
-            _authApi = new CustomerAuthApi(this, _apiSettings);
-            Debug.Log($"{LogPrefix} Ready. API base URL: {_apiSettings.BaseUrl}");
+            // usingApiDomain also decides whether to trust any TLS certificate
+            // (see ApiClient's constructor doc) - deliberately derived from the
+            // SAME GameManager.CurrentEnvironment value that picked
+            // _apiDomainSettings, not a second independently-set flag, so the
+            // two can't drift out of sync with each other.
+            _session = new AuthSession(new TokenStorage(settings.PersistToken));
+            _authApi = new CustomerAuthApi(this, settings, trustAnyCertificate: usingApiDomain);
+            Debug.Log($"{LogPrefix} Ready. API base URL: {settings.BaseUrl}{(usingApiDomain ? " (api domain override)" : "")}");
         }
 
         private void OnEnable()

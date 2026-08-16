@@ -16,11 +16,11 @@ data, vehicle data, saved configurations, and leads.
 - Place and interact with vehicles using Unity AR Foundation (ARCore on Android,
   ARKit on iOS).
 - Calculate affordability estimates locally.
-- Display login and registration screens through an event-driven UI flow.
-
-Authentication in the Unity client is currently a development stub: it validates
-basic input and publishes success locally. It is deliberately the seam where the
-real backend integration will be added; it does not yet call the API.
+- Register and log in against the real backend: `AuthController` validates
+  input locally first, then calls `ICustomerAuthApi`/`CustomerAuthApi`, which
+  POSTs to `api/customer/auth/login` and `api/customer/auth/register` via
+  `ApiClient.PostJson` (a real `UnityWebRequest` call, not a stub), and
+  publishes `AuthSucceededEvent`/`AuthFailedEvent` on the result.
 
 ## Architecture
 
@@ -44,35 +44,41 @@ of API, AR, and storage implementation details.
 Vehicle catalogue items are `CarData` ScriptableObjects stored in
 `Assets/Resources/Cars`. They are loaded by the catalogue screen at runtime.
 
-## Backend API integration plan
+## Backend API integration status
 
-The intended client boundary is a small API layer, rather than HTTP calls from
-UI controllers:
+The client boundary is a small API layer under `Core`, not direct HTTP calls
+from UI controllers — `Assets/Scripts/Core/Networking/ApiClient.cs` wraps
+`UnityWebRequest` (`ApiClient.PostJson<TRequest, TResponse>`), and
+`Assets/Scripts/Core/Auth/` builds on it for auth specifically.
 
-1. Add API DTOs and an `IApiClient`/feature services (for example,
-   `ICustomerAuthApi`, `IVehicleApi`, and `ILeadApi`) under `Core`.
-2. Implement those services with `UnityWebRequest`, using a development and a
-   production API base URL supplied by a configuration asset. Keep API URLs and
-   non-secret settings out of UI code.
-3. Replace the stub logic in `AuthController` with calls to
-   `POST /api/customer/auth/register` and `POST /api/customer/auth/login`.
-   Map the response into the local `User` model, persist the access token using
-   an appropriate platform-secure store, then publish the existing
-   `AuthSucceededEvent` or `AuthFailedEvent`.
-4. Have authenticated feature services attach `Authorization: Bearer <token>`.
-   On a 401 response, clear the session and notify the UI to return to login.
-5. Introduce vehicle catalogue, saved-configuration, and lead API calls as their
-   backend endpoints become available. Existing selection and estimate events
-   provide natural hand-off points for those services.
+**Done:**
 
-The current backend implements customer authentication at:
+- Customer registration and login call the real backend —
+  `ICustomerAuthApi`/`CustomerAuthApi` POST to `api/customer/auth/register`
+  and `api/customer/auth/login` against `ApiSettings.BaseUrl` (defaults to
+  `http://localhost:5080`), and `AuthController` maps the result into
+  `AuthSucceededEvent`/`AuthFailedEvent`.
+- The access token is persisted via `TokenStorage`/`AuthSession`
+  (`Assets/Scripts/Core/Auth/`).
 
-- `POST /api/customer/auth/register`
-- `POST /api/customer/auth/login`
+**Not done yet:**
 
-It also has a separate invite-only staff authentication flow for dealership
-dashboards. That staff flow should not be part of the customer-facing AR app
-unless a future staff/kiosk mode explicitly requires it.
+- No feature service attaches `Authorization: Bearer <token>` anywhere in the
+  codebase, and there's no 401-handling (clear session, return to login) —
+  because auth is currently the *only* API surface the client calls; nothing
+  else needs the token yet.
+- The vehicle catalogue is still local-only:
+  `CarSelectionScreenController.InitializeCarData()`
+  (`Assets/Scripts/UI Docs/Controllers/CarSelectionScreenController.cs`) loads
+  `CarData` via `Resources.LoadAll<CarData>("Cars")`, not an API call. See
+  this project's `.claude/CLAUDE.md` for the planned `IVehicleCatalogApi` seam.
+- There's no `ILeadApi` or saved-configuration API client — leads and saved
+  configurations aren't implemented on the Unity side at all yet.
+
+The backend also has a separate invite-only staff authentication flow for
+dealership dashboards (`api/staff/auth/*`). That staff flow should not be part
+of the customer-facing AR app unless a future staff/kiosk mode explicitly
+requires it.
 
 ## Prerequisites
 
@@ -88,8 +94,64 @@ unless a future staff/kiosk mode explicitly requires it.
 2. Allow Unity to resolve packages and import assets.
 3. Open the main scene and run it in the Editor for UI flow work.
 4. Switch the build target to Android or iOS to test AR on a supported device.
-5. When API integration begins, run the sibling backend locally and configure the
-   client base URL for the target environment.
+5. To exercise login/registration against a real backend, run the sibling
+   `NAS_Backend` project locally and point `ApiSettings.BaseUrl` at it (default
+   is already `http://localhost:5080`, matching the backend's own default).
+
+## Optional: HTTPS for testing on a physical device
+
+Not required for Editor work or normal API integration — the backend's plain
+`http://localhost:5080` (see `NAS_Backend`'s own README) is enough for that.
+If you're testing on a real Android/iOS device and it rejects the backend's
+self-signed HTTPS dev certificate, `NAS_Backend`'s `nginx/README.md` has an
+optional local proxy that terminates HTTPS with a certificate the device can
+be made to trust, instead of disabling certificate validation in the client.
+
+**Switching the app to use it:** this is a project-wide setting, not
+something buried in a UI controller. `GameManager` (on the persistent
+`GameManager` GameObject, `DontDestroyOnLoad`) has an `Environment` field:
+
+- `AppEnvironment.Local` — the default. `http://localhost:5080`. Always
+  safe, always works, this is what's used normally.
+- `AppEnvironment.ApiDomain` — `https://api.nas.test:8443`, i.e. the nginx
+  proxy above. Only works on a machine that's actually run the
+  `nginx`/`mkcert`/`/etc/hosts` setup in `NAS_Backend/nginx/`.
+
+`AuthController` reads `GameManager.Instance.CurrentEnvironment` in
+`Start()` (not `Awake()` — Unity doesn't guarantee `Awake()` order across
+different GameObjects, and `GameManager.Instance` needs to already be set;
+`Start()` is guaranteed to run after every object's `Awake()` has) and picks
+between its own `_apiSettings` (Local) and `_apiDomainSettings` (ApiDomain,
+`Assets/Scripts/Core/Networking/ApiSettings.ApiDomain.asset`) accordingly —
+the same environment value also decides whether to skip TLS certificate
+validation (see below), so there's exactly one switch to flip, not several
+that have to be kept in sync by hand. **Defaults to `Local`, and should stay
+that way in anything you commit/push** — enabling `ApiDomain` on a machine
+without the matching local setup makes auth fail silently. Verified working
+both ways in Play mode, including a full login attempt through each path —
+`Start()` logs which one is active (`[NAS Auth] Ready. API base URL: ...`)
+so you can confirm which mode you're in.
+
+*(This used to be a bool living directly on `AuthController`, with a
+separate bool on the `ApiSettings` asset controlling certificate bypass.
+Both were removed — the first because a per-script toggle isn't really
+"project-wide," the second because it could be, and once was, toggled off by
+itself without anyone touching the thing that was supposed to control it,
+silently reintroducing a bug that had already been fixed.)*
+
+**Certificate gotcha, already handled — but worth knowing about:**
+`UnityWebRequest` validates TLS certificates against UnityTls's own bundled
+CA list, not the OS/Keychain trust store. That means `mkcert -install`
+(which only updates the OS trust store — enough for curl/Safari) has **no
+effect** on Unity's own HTTP client: even with everything else set up
+correctly, you'd still hit `Curl error 60: Cert verify failed... UnityTls
+error code: 7`. When the environment is `ApiDomain`, `ApiClient` attaches
+`AcceptAllCertificatesHandler` (`Core/Networking/`) to skip that validation —
+driven by the same environment value above, so normal/production traffic
+(`Local`) always gets real certificate validation. Verified end-to-end in
+Play mode: a login attempt through `https://api.nas.test:8443` reaches the
+backend and gets a real `401` response instead of failing on the TLS
+handshake.
 
 ## Key packages
 
