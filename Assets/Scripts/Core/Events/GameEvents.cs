@@ -42,7 +42,12 @@ namespace NAS.Core.Events
     public readonly struct AuthSucceededEvent
     {
         public readonly User User;
-        public AuthSucceededEvent(User user) => User = user;
+        public readonly string AccessToken;
+        public AuthSucceededEvent(User user, string accessToken)
+        {
+            User = user;
+            AccessToken = accessToken;
+        }
     }
 
     /// <summary>Raised by AuthController when login or registration fails validation/the backend.</summary>

@@ -38,40 +38,17 @@ namespace NAS.Core.Auth
             // guarantee Awake() order across different GameObjects, but Start()
             // is guaranteed to run only after every object's Awake() has, so
             // GameManager.Instance is reliably set by this point.
-            var environment = GameManager.Instance != null
-                ? GameManager.Instance.CurrentEnvironment
-                : AppEnvironment.Local;
+            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, LogPrefix);
 
-            var settings = _apiSettings;
-            var usingApiDomain = false;
-
-            if (environment == AppEnvironment.ApiDomain)
-            {
-                if (_apiDomainSettings != null)
-                {
-                    settings = _apiDomainSettings;
-                    usingApiDomain = true;
-                }
-                else
-                {
-                    Debug.LogWarning($"{LogPrefix} GameManager.CurrentEnvironment is ApiDomain but _apiDomainSettings is not assigned. Falling back to _apiSettings.");
-                }
-            }
-
-            if (settings == null)
+            if (resolved.Settings == null)
             {
                 Debug.LogError($"{LogPrefix} ApiSettings is missing on AuthController.");
                 return;
             }
 
-            // usingApiDomain also decides whether to trust any TLS certificate
-            // (see ApiClient's constructor doc) - deliberately derived from the
-            // SAME GameManager.CurrentEnvironment value that picked
-            // _apiDomainSettings, not a second independently-set flag, so the
-            // two can't drift out of sync with each other.
-            _session = new AuthSession(new TokenStorage(settings.PersistToken));
-            _authApi = new CustomerAuthApi(this, settings, trustAnyCertificate: usingApiDomain);
-            Debug.Log($"{LogPrefix} Ready. API base URL: {settings.BaseUrl}{(usingApiDomain ? " (api domain override)" : "")}");
+            _session = new AuthSession(new TokenStorage(resolved.Settings.PersistToken));
+            _authApi = new CustomerAuthApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            Debug.Log($"{LogPrefix} Ready. API base URL: {resolved.Settings.BaseUrl}{(resolved.TrustAnyCertificate ? " (api domain override)" : "")}");
         }
 
         private void OnEnable()
@@ -202,7 +179,7 @@ private void HandleRegisterRequested(RegisterRequestedEvent evt)
             {
                 _session.Apply(result.Value);
                 Debug.Log($"{LogPrefix} Authentication succeeded for customer ID {_session.CurrentUser?.id}.");
-                EventBus.Publish(new AuthSucceededEvent(_session.CurrentUser));
+                EventBus.Publish(new AuthSucceededEvent(_session.CurrentUser, _session.AccessToken));
             }
             catch (System.Exception exception)
             {

@@ -29,6 +29,7 @@ namespace NAS.Core
 
         [Header("Session")]
         public User CurrentUser { get; private set; }
+        public string AccessToken { get; private set; }
         public VehicleInfo SelectedCar { get; private set; }
         public bool ReturnToEstimator { get; set; } = false;
 
@@ -61,7 +62,11 @@ namespace NAS.Core
             EventBus.Unsubscribe<ReturnToEstimatorRequestedEvent>(OnReturnToEstimatorRequested);
         }
 
-        private void OnAuthSucceeded(AuthSucceededEvent evt) => CurrentUser = evt.User;
+        private void OnAuthSucceeded(AuthSucceededEvent evt)
+        {
+            CurrentUser = evt.User;
+            AccessToken = evt.AccessToken;
+        }
         private void OnCarSelected(CarSelectedEvent evt) => SelectedCar = evt.Vehicle;
         private void OnReturnToEstimatorRequested(ReturnToEstimatorRequestedEvent evt) => ReturnToEstimator = true;
 

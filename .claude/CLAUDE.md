@@ -71,18 +71,17 @@ has — and picks between `_apiSettings` (Local, `http://localhost:5080`) and
 `https://api.nas.test:8443` — the optional `NAS_Backend/nginx/` proxy). The
 same `CurrentEnvironment` value also decides `trustAnyCertificate`, passed
 explicitly through `CustomerAuthApi`'s and `ApiClient`'s constructors (see
-the cert gotcha below) — one source of truth for both concerns, not two
-separately-set ones. **The committed default is `AppEnvironment.Local`, and
-it must stay that way** — `ApiDomain` only works on a machine with the
-nginx/mkcert/`/etc/hosts` setup from `NAS_Backend/nginx/README.md` already
-running; on any other machine it makes auth fail silently. If you find this
-set to `ApiDomain` in a diff that isn't explicitly about device HTTPS
-testing, that's very likely an accidental commit — flip it back. See the
-README's "Optional: HTTPS for testing on a physical device" section for the
-full explanation, including why this moved off `AuthController` entirely
-(it started as a bool on `AuthController`, then a bool + a second
-independent cert-trust bool on `ApiSettings` that drifted out of sync and
-silently broke things — both mistakes, don't repeat either shape).
+the cert gotcha below) — **keep this a single source of truth for both
+concerns.** A design with two independently-toggleable flags (one for which
+`ApiSettings` to use, one for cert trust) will eventually drift out of sync,
+since nothing stops either one being flipped without the other. **The
+committed default is `AppEnvironment.Local`, and it must stay that way** —
+`ApiDomain` only works on a machine with the nginx/mkcert/`/etc/hosts` setup
+from `NAS_Backend/nginx/README.md` already running; on any other machine it
+makes auth fail silently. If you find this set to `ApiDomain` in a diff that
+isn't explicitly about device HTTPS testing, that's very likely an
+accidental commit — flip it back. See the README's "Optional: HTTPS for
+testing on a physical device" section for the full explanation.
 
 **Recurring gotcha: adding a cross-folder script reference can compile
 "clean" right up until it doesn't.** This project uses one `.asmdef` per
@@ -117,8 +116,7 @@ verify per-file if it matters for what you're doing.
 - `CarCardView` — binds one cloned `CarCard.uxml` instance to a `CarData`.
   **Uses `visibility` (not `display`) to hide an empty boundary slot** — `display:none`
   removes the element from flex layout entirely, which breaks the 3-slot symmetry
-  `justify-content:center` relies on to keep the current card centered (this was a
-  real bug: showed "half of 2 cards" at the first/last car until fixed).
+  `justify-content:center` relies on to keep the current card centered.
 - `CarSelectionScreenController` (`Controllers/`) drives the drag: `PointerDown` (capture pointer) →
   `PointerMove` (clamped `translate` on `_carsContainer`, follows the finger 1:1) →
   `PointerUp` (25%-of-viewport-width threshold decides commit vs. snap back;
@@ -155,8 +153,7 @@ This has caused real, hard-to-spot bugs multiple times in this project. Inline
 specificity, even a rule added later. Before changing a USS class to fix a visual
 issue, **check the UXML for an inline style on that same element** — if the element
 already has an inline value for the property being changed, editing only the USS
-does nothing (this exact thing happened with `.dropdown-arrow` background-color,
-`.car-card` width, and `.search-icon`).
+does nothing.
 
 ## Recurring gotcha: script GUIDs
 
@@ -188,19 +185,14 @@ alongside `_environment`/`AppEnvironment`) is currently **dead** — `Initialize
 always constructs `DevStorageService` regardless of its value; the bool only
 feeds a `Debug.Log` line, so flipping it to `true` gets you a log claiming
 "Using PRODUCTION storage" while Dev storage silently keeps running underneath.
-This was already true before `AppEnvironment` existed (see the comment left in
-`InitializeStorage()`: "Swap in ProdStorageService here once `_useProduction`
-actually branches again").
 
 **Deliberately not fixed now** — there's no plan for multiple Tigris storage
 environments at this stage of the project. Revisit this when AR integration
 starts (the AR placement step in the screen flow above, i.e. once vehicles
 actually need real downloaded 3D models rather than just placeholder testing).
 At that point, follow `AuthController`'s pattern: one enum on `GameManager`
-(extend `AppEnvironment`, or add a dedicated one if storage and API turn out
-to need different environments) as the single source of truth, not a second
-independent bool that can drift — see the Auth section above for why that
-matters, it already happened once.
+as the single source of truth, not a second independent bool that can drift
+(see the Auth section above for why that matters).
 
 ## Design reference
 
