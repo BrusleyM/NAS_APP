@@ -1,10 +1,7 @@
 {
-    "name": "NAS.Core.Networking",
-    "rootNamespace": "NAS.Core.Networking",
-    "references": [
-        "GUID:00fe0a699a9874c13bb10b2d7bc0334f",
-        "GUID:f43488eba97b34fec9e8ab2e1396d780"
-    ],
+    "name": "NAS.Core.Vehicles.Dtos",
+    "rootNamespace": "NAS.Core.Vehicles.Dtos",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

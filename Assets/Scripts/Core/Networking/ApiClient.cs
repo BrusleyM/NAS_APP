@@ -25,32 +25,58 @@ namespace NAS.Core.Networking
             _trustAnyCertificate = trustAnyCertificate;
         }
 
-        public IEnumerator PostJson<TRequest, TResponse>(string path, TRequest payload, Action<ApiResult<TResponse>> completed)
+        public IEnumerator PostJson<TRequest, TResponse>(string path, TRequest payload, Action<ApiResult<TResponse>> completed, string bearerToken = null)
         {
-            var request = new UnityWebRequest($"{_settings.BaseUrl}/{path.TrimStart('/')}", UnityWebRequest.kHttpVerbPOST)
+            var request = BuildRequest(path, UnityWebRequest.kHttpVerbPOST, JsonUtility.ToJson(payload), bearerToken);
+            yield return request.SendWebRequest();
+            Complete(request, completed);
+        }
+
+        public IEnumerator GetJson<TResponse>(string path, Action<ApiResult<TResponse>> completed, string bearerToken = null)
+        {
+            var request = BuildRequest(path, UnityWebRequest.kHttpVerbGET, jsonBody: null, bearerToken);
+            yield return request.SendWebRequest();
+            Complete(request, completed);
+        }
+
+        private UnityWebRequest BuildRequest(string path, string method, string jsonBody, string bearerToken)
+        {
+            var request = new UnityWebRequest($"{_settings.BaseUrl}/{path.TrimStart('/')}", method)
             {
-                uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload))),
                 downloadHandler = new DownloadHandlerBuffer(),
                 timeout = _settings.TimeoutSeconds
             };
-            request.SetRequestHeader("Content-Type", "application/json");
+
+            if (jsonBody != null)
+            {
+                request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(jsonBody));
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
             request.SetRequestHeader("Accept", "application/json");
+
+            if (!string.IsNullOrEmpty(bearerToken))
+            {
+                request.SetRequestHeader("Authorization", $"Bearer {bearerToken}");
+            }
 
             if (_trustAnyCertificate)
             {
                 request.certificateHandler = new AcceptAllCertificatesHandler();
             }
 
-            yield return request.SendWebRequest();
+            return request;
+        }
 
+        private static void Complete<TResponse>(UnityWebRequest request, Action<ApiResult<TResponse>> completed)
+        {
             if (request.result == UnityWebRequest.Result.Success)
             {
                 completed?.Invoke(ApiResult<TResponse>.FromSuccess(JsonUtility.FromJson<TResponse>(request.downloadHandler.text)));
-                request.Dispose();
-                yield break;
             }
-
-            completed?.Invoke(ApiResult<TResponse>.FromError(ParseError(request)));
+            else
+            {
+                completed?.Invoke(ApiResult<TResponse>.FromError(ParseError(request)));
+            }
             request.Dispose();
         }
 

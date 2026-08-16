@@ -1,8 +1,12 @@
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using NAS.Core;
 using NAS.Core.Models;
 using NAS.Core.Events;
+using NAS.Core.Networking;
+using NAS.Core.Vehicles;
 using NAS.UI.Components;
 
 namespace NAS.UI.Controllers
@@ -13,7 +17,23 @@ namespace NAS.UI.Controllers
     /// </summary>
     public class CarSelectionScreenController : MonoBehaviour
     {
+        private const string LogPrefix = "[NAS Cars]";
+
+        private enum CarLoadState { Loading, Loaded, Failed }
+
+        // Not [SerializeField]: this controller is never pre-placed in the
+        // scene (it's added dynamically via AddComponent<T>() by
+        // ParentPageController), so it has no Inspector to assign these in.
+        // They're handed in via Initialize() instead, sourced from
+        // ParentPageController's own [SerializeField] fields (which - unlike
+        // this controller - IS scene-placed and Inspector-wireable).
+        private ApiSettings _apiSettings;
+        private ApiSettings _apiDomainSettings;
+
         private VisualTreeAsset _carCardTemplate;
+        private IVehicleCatalogApi _vehicleApi;
+        private RemoteTextureLoader _thumbnailLoader;
+        private CarLoadState _loadState = CarLoadState.Loading;
 
         private Button _typeDropdownButton;
         private Label _selectedTypeLabel;
@@ -41,16 +61,26 @@ namespace NAS.UI.Controllers
             "All Types", "Sedan", "SUV", "Hatchback", "Van"
         };
 
-        public void Initialize(VisualTreeAsset carCardTemplate)
+        // AddComponent<T>() runs OnEnable() synchronously, before the caller
+        // (ParentPageController) gets a chance to call this - so the vehicle
+        // fetch (which needs _apiSettings, only available after this runs)
+        // happens here, not in OnEnable(). See this project's .claude/CLAUDE.md
+        // "Important gotcha" for why - OnEnable only does the
+        // data-independent DOM-querying/event wiring.
+        public void Initialize(VisualTreeAsset carCardTemplate, ApiSettings apiSettings, ApiSettings apiDomainSettings)
         {
             _carCardTemplate = carCardTemplate;
+            _apiSettings = apiSettings;
+            _apiDomainSettings = apiDomainSettings;
+            InitializeCarData();
             SetupUI();
         }
 
         private void OnEnable()
         {
-            InitializeCarData();
-
+            // _carCardTemplate is only non-null here if Initialize() already
+            // ran (e.g. OnEnable firing again later, not the synchronous
+            // AddComponent-triggered first call) - SetupUI() is idempotent.
             if (_carCardTemplate != null)
                 SetupUI();
         }
@@ -76,7 +106,7 @@ namespace NAS.UI.Controllers
             _emptyStateLabel = root.Q<Label>("empty-state-label");
             _startButton = root.Q<Button>("start-ar-button");
 
-            _pager = new CarPager(_carsContainer, _carCardTemplate);
+            _pager = new CarPager(_carsContainer, _carCardTemplate, RequestCarThumbnail);
 
             PopulateDropdown();
 
@@ -99,15 +129,51 @@ namespace NAS.UI.Controllers
 
         private void InitializeCarData()
         {
-            var loaded = Resources.LoadAll<CarData>("Cars");
-            _allCars = new List<CarData>(loaded);
+            _allCars = new List<CarData>();
+            _loadState = CarLoadState.Loading;
 
-            if (_allCars.Count == 0)
+            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, LogPrefix);
+            if (resolved.Settings == null)
             {
-                Debug.LogWarning(
-                    "CarSelectionScreenController: no CarData assets found under Resources/Cars. " +
-                    "Create some via Assets > Create > NAS > Car Data.");
+                Debug.LogError($"{LogPrefix} ApiSettings is missing on CarSelectionScreenController.");
+                _loadState = CarLoadState.Failed;
+                UpdateFilteredCars();
+                return;
             }
+
+            _vehicleApi = new VehicleCatalogApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            _thumbnailLoader = new RemoteTextureLoader(this, resolved.TrustAnyCertificate);
+
+            string accessToken = GameManager.Instance != null ? GameManager.Instance.AccessToken : null;
+            _vehicleApi.GetVehicles(dealershipId: null, accessToken, OnVehiclesLoaded);
+        }
+
+        private void OnVehiclesLoaded(ApiResult<List<CarData>> result)
+        {
+            _allCars = result.Success ? (result.Value ?? new List<CarData>()) : new List<CarData>();
+            _loadState = result.Success ? CarLoadState.Loaded : CarLoadState.Failed;
+
+            if (!result.Success)
+                Debug.LogWarning($"{LogPrefix} Vehicle catalog fetch failed: {result.Error.Detail}");
+
+            UpdateFilteredCars();
+        }
+
+        // No automatic fallback to Resources.LoadAll on failure - local fixture
+        // CarData assets don't have real backend ids, so silently substituting
+        // them would let someone "select" a car that doesn't exist server-side.
+
+        private void RequestCarThumbnail(CarData car, Action<Texture2D> onLoaded)
+        {
+            if (car == null || car.image != null || string.IsNullOrEmpty(car.imageUrl))
+            {
+                // Hand-authored fixtures with an Editor-assigned image never hit
+                // the network - preserves today's behavior for those.
+                onLoaded?.Invoke(car != null ? car.image : null);
+                return;
+            }
+
+            _thumbnailLoader.RequestTexture(car.imageUrl, onLoaded);
         }
 
         private void PopulateDropdown()
@@ -171,11 +237,15 @@ namespace NAS.UI.Controllers
             if (_allCars == null)
                 return;
 
+            // car.type/category can be null - real vehicles don't always have a
+            // body type or powertrain set yet (see NAS_Backend's nullable
+            // BodyType/Powertrain columns), unlike the old local fixtures which
+            // always had both.
             _filteredCars = _allCars.FindAll(car =>
                 (_selectedType == "All Types" || car.type == _selectedType) &&
                 (string.IsNullOrEmpty(_searchQuery) ||
-                 car.carName.ToLower().Contains(_searchQuery.ToLower()) ||
-                 car.category.ToLower().Contains(_searchQuery.ToLower()))
+                 (car.carName ?? string.Empty).ToLower().Contains(_searchQuery.ToLower()) ||
+                 (car.category ?? string.Empty).ToLower().Contains(_searchQuery.ToLower()))
             );
 
             if (_pager != null)
@@ -190,6 +260,13 @@ namespace NAS.UI.Controllers
                 return;
 
             bool hasResults = _filteredCars != null && _filteredCars.Count > 0;
+
+            _emptyStateLabel.text = _loadState switch
+            {
+                CarLoadState.Loading => "Loading cars...",
+                CarLoadState.Failed => "Couldn't load the car catalog. Please try again later.",
+                _ => "No cars match your search."
+            };
 
             _emptyStateLabel.style.display = hasResults ? DisplayStyle.None : DisplayStyle.Flex;
             _carsScrollView.style.display = hasResults ? DisplayStyle.Flex : DisplayStyle.None;

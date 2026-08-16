@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NAS.Core.Models;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace NAS.UI.Components
@@ -15,6 +16,7 @@ namespace NAS.UI.Components
         public const int CenterSlot = 1;
 
         private readonly CarCardView[] _pool = new CarCardView[SlotCount];
+        private readonly Action<CarData, Action<Texture2D>> _requestThumbnail;
         private IReadOnlyList<CarData> _cars = Array.Empty<CarData>();
         private int _currentIndex;
 
@@ -26,8 +28,12 @@ namespace NAS.UI.Components
         public CarData SelectedCar =>
             HasCars ? _cars[_currentIndex] : null;
 
-        public CarPager(VisualElement track, VisualTreeAsset cardTemplate)
+        // requestThumbnail is optional so CarPager stays fully decoupled from
+        // networking - callers that don't need remote thumbnails (or tests)
+        // can omit it entirely.
+        public CarPager(VisualElement track, VisualTreeAsset cardTemplate, Action<CarData, Action<Texture2D>> requestThumbnail = null)
         {
+            _requestThumbnail = requestThumbnail;
             track.Clear();
 
             for (int slot = 0; slot < SlotCount; slot++)
@@ -102,9 +108,20 @@ namespace NAS.UI.Components
                 int carIndex = _currentIndex + (slot - CenterSlot);
 
                 if (carIndex < 0 || carIndex >= _cars.Count)
+                {
                     _pool[slot].SetEmpty();
+                }
                 else
-                    _pool[slot].SetCar(_cars[carIndex], carIndex);
+                {
+                    var card = _pool[slot];
+                    var boundCar = _cars[carIndex];
+                    card.SetCar(boundCar, carIndex);
+                    // Fires in the same frame as SetCar - a cache hit (the
+                    // common case for a previously-shown car) resolves with no
+                    // visible flicker; a cache miss leaves the placeholder
+                    // SetCar already applied until this resolves later.
+                    _requestThumbnail?.Invoke(boundCar, texture => card.ApplyThumbnail(boundCar, texture));
+                }
 
                 _pool[slot].SetSelected(slot == CenterSlot);
             }
