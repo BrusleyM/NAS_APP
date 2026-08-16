@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./Library/**)",
+      "Read(./Temp/**)",
+      "Read(./obj/**)",
+      "Read(./Build/**)",
+      "Read(./Builds/**)",
+      "Read(./Logs/**)",
+      "Read(./UserSettings/**)",
+      "Read(./MemoryCaptures/**)",
+      "Read(./.vs/**)",
+      "Read(./.idea/**)",
+      "Read(./.vscode/**)",
+      "Read(**/*.csproj)",
+      "Read(**/*.sln)",
+      "Read(**/*.pidb)",
+      "Read(**/*.booproj)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ],
+    "allow": [
+      "Read(./Assets/**)",
+      "Read(./Packages/**)",
+      "Read(./ProjectSettings/**)",
+      "Edit(./Assets/**)",
+      "Write(./Assets/**)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)"
+    ]
+  }
+}

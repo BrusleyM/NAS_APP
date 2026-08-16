@@ -76,4 +76,10 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
+# Car .glb models staged here before upload to Tigris (GameManager.UploadModel) -
+# these are meant to live in Tigris storage at runtime, not bundled in the repo/build.
+# Not LFS-tracked (see .gitattributes) since they're not meant to be committed at all.
+/Assets/Models/cars/
+/Assets/Models/cars.meta
+
 # End of https://www.toptal.com/developers/gitignore/api/unity

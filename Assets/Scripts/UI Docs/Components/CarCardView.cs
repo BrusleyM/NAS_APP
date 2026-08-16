@@ -37,7 +37,9 @@ public void SetCar(CarData car, int carIndex)
                 _nameLabel.text = car.carName;
 
             if (_typeLabel != null)
-                _typeLabel.text = car.category;
+                _typeLabel.text = string.IsNullOrEmpty(car.type)
+                    ? car.category
+                    : $"{car.category} \u00B7 {car.type}";
 
             if (_thumbnail != null)
                 _thumbnail.image = car.image;

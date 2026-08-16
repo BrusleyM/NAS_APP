@@ -10,10 +10,10 @@ namespace NAS.Core.Auth
         private readonly MonoBehaviour _coroutineRunner;
         private readonly ApiClient _client;
 
-        public CustomerAuthApi(MonoBehaviour coroutineRunner, ApiSettings settings)
+        public CustomerAuthApi(MonoBehaviour coroutineRunner, ApiSettings settings, bool trustAnyCertificate = false)
         {
             _coroutineRunner = coroutineRunner;
-            _client = new ApiClient(settings);
+            _client = new ApiClient(settings, trustAnyCertificate);
         }
 
         public void Login(CustomerLoginRequest request, Action<ApiResult<CustomerAuthResponse>> completed)

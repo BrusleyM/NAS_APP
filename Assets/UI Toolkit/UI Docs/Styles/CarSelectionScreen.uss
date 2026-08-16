@@ -157,12 +157,14 @@
     color: rgb(192, 192, 192);
     margin-bottom: 2%;
     -unity-text-align: middle-center;
+    white-space: normal;
 }
 
 .car-category {
     font-size: 12px;
     color: rgba(192, 192, 192, 0.6);
     -unity-text-align: middle-center;
+    white-space: normal;
 }
 
 .car-card--selected .car-name {

@@ -23,6 +23,10 @@ namespace NAS.Core
         [Tooltip("If true, uses production Cognito settings; otherwise uses development basic credentials.")]
         [SerializeField] private bool _useProduction = false;
 
+        [Tooltip("Project-wide switch for which backend API endpoint to use. Local = http://localhost:5080 (safe default, always works). ApiDomain = https://api.nas.test:8443 via the optional local nginx proxy (NAS_Backend/nginx/README.md) - only works on a machine that has that setup running (nginx + mkcert + /etc/hosts). Keep this at Local in anything committed/pushed, or teammates without that setup will have auth silently fail. AuthController reads this in Start() rather than owning its own toggle.")]
+        [SerializeField] private AppEnvironment _environment = AppEnvironment.Local;
+        public AppEnvironment CurrentEnvironment => _environment;
+
         [Header("Session")]
         public User CurrentUser { get; private set; }
         public VehicleInfo SelectedCar { get; private set; }
@@ -70,7 +74,11 @@ namespace NAS.Core
                 return;
             }
 
-            // Swap in ProdStorageService here once _useProduction actually branches again.
+            // _useProduction is currently dead - only affects the log line below, not
+            // which service gets constructed. Deliberately not fixed yet (no plan for
+            // multiple Tigris environments at this stage) - see .claude/CLAUDE.md's
+            // Tigris storage TODO for what to do here once AR integration starts:
+            // follow AuthController's single-enum pattern, not a second drifting bool.
             _storage = new DevStorageService(config);
 
             Debug.Log($"GameManager: Using {(_useProduction ? "PRODUCTION" : "DEVELOPMENT")} storage.");
