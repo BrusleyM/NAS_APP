@@ -130,62 +130,77 @@ verify per-file if it matters for what you're doing.
   they don't know or care that it's API-sourced, which is what made this migration
   low-risk when it happened.
 
-## Vehicle catalog: real 3D models, not just names (`Assets/Prefabs/Cars/`)
+## Vehicle catalog: real 3D models, not just names (`Assets/Models/cars/`)
 
-The catalog is 11 vehicles named `<Make/Model> DEMO` (e.g. `BMW M8 DEMO`) — the
+The catalog is 9 vehicles named `<Make/Model> DEMO` (e.g. `BMW M8 DEMO`) — the
 `DEMO` suffix is deliberate on both the DB row and the Tigris object key, so
 nothing in the shipped app reads as an actual partnership with the real
-manufacturers. Backing 3D models live in `Assets/Models/cars/*.glb` (glTFast
-imports), each wrapped by a corrective prefab in `Assets/Prefabs/Cars/` (e.g.
-`BMWM8Demo.prefab`) — **never place a raw imported `.glb` directly**, always go
-through its prefab.
+manufacturers. Backing 3D models are plain `.glb` files in `Assets/Models/cars/`
+(glTFast imports) — **there is no wrapper prefab layer**. The files in that
+folder are the corrected, ready-to-use source of truth; place/instantiate them
+directly.
 
-**Why the wrapper prefabs exist — two real bugs found in the raw imports:**
-1. **Scale.** Several of these Sketchfab-sourced `.glb` files import at wildly
+**Why "corrected" matters — two real bugs found in the original downloads,**
+fixed at the source (not worked around with a Unity-side wrapper):
+1. **Scale.** Several of these Sketchfab-sourced `.glb` files imported at wildly
    wrong scale (some ~100x too small, some ~5-10x too big) — glTF is spec'd in
-   meters so this is baked into the source file, not a Unity import setting.
-   Measure with combined `Renderer.bounds` across all child renderers (a
-   *median-filtered* max-dimension check catches stray artifact meshes — e.g.
-   `bmw_x6m.glb` had one tiny orphaned mesh sitting 7+ units from the car body
-   that blew out the naive combined bounds to 10m) and compare against the
-   vehicle's real-world length before trusting either the raw bounds or a
-   "looks fine" visual at an arbitrary zoom level.
-2. **Orientation and pivot.** All 11 source models import standing on their
-   nose (length along Unity's +Y, not forward/Z) and with their pivot **not**
-   at the vehicle's centered, ground-level point — a couple were off by
-   several meters on X/Z, and one sat with its lowest point 0.6m below Y=0.
-   Each prefab's `Model` child carries a corrective `localRotation` (-90° X,
-   plus a further 90° Y for the one model whose length ended up on X instead
-   of Z) and `localPosition` shift so that at rest: the car lies flat, length
-   runs along +Z, height along +Y, and the prefab's own root pivot sits
-   exactly at the car's centered, ground-touching point — required for
-   `Instantiate(prefab, hitPose.position, hitPose.rotation)`-style AR
-   placement to put the car where the user actually tapped, sitting on the
-   ground, not floating/sunk/offset. If a new car model is ever added this
-   way, verify scale + orientation + pivot the same way before trusting it —
-   this was found the hard way, mid-session, on this exact batch.
+   meters so this was baked into the source file, not a Unity import setting.
+2. **Orientation and pivot.** All 11 originally imported standing on their nose
+   with their pivot off-center (a couple by several meters on X/Z, one with its
+   lowest point 0.6m below ground).
 
-**Not yet wired up:** each vehicle's Tigris-hosted AssetBundle (built via
-`BuildPipeline.BuildAssetBundles`, bundle name `carmodels/<key>`, e.g.
-`carmodels/bmwm8demo`) is uploaded and the DB's `vehicle_model.tigris_model_key`
-column records which bundle belongs to which row — but nothing in the AR scene
-actually downloads and instantiates it yet. `ObjectPlacerController`
-(`Assets/Scripts/Core/ObjectPlacerController.cs`, on the "ar man" GameObject in
-`AR Scene.unity`) still places a single fixed `raycastPrefab` regardless of
-which car was selected. Wiring `GameManager.SelectedCar` through to a real
-per-car download (mirroring `AssetBundleTest.cs`'s
-download-bundle-then-`LoadAsset<GameObject>` pattern, but driven by the
-selected vehicle's `tigrisModelKey` instead of a hardcoded key) is the natural
-next step — not built yet, don't assume it exists.
+Both were fixed by running each model through Blender (`brew install --cask
+blender`, driven headlessly via `blender --background --python script.py`):
+join all mesh parts into one object, neutralize whatever transform the source
+file's node hierarchy carried (**must use the object's full evaluated
+`matrix_world`, not just `matrix_basis`** — some of these files parent meshes
+through several levels of bone/empty nodes, e.g. the Tesla model, each level
+carrying its own rotation/scale that `matrix_basis` alone silently ignores),
+apply a uniform scale correction computed against the vehicle's real-world
+length, recenter the pivot to the ground-touching centroid, and re-export.
+**No rotation correction is needed** — once neutralization correctly accounts
+for the full parent chain, Blender's own glTF exporter handles the Z-up →
+Y-up axis conversion correctly on its own; manually adding a corrective
+rotation on top (which earlier, incomplete versions of this pipeline needed)
+becomes actively wrong and reintroduces the "standing on its nose" bug.
+Verify any reprocessed model the same way this batch was verified: reimport
+into Unity, check combined `Renderer.bounds` against the vehicle's real-world
+L×W×H, confirm `bounds.min.y ≈ 0` and `bounds.center.x/z ≈ 0`, then eyeball a
+screenshot — bounds alone can't be fully trusted (an unrelated stray mesh once
+inflated one model's naive combined bounds to 10m; a median-filtered
+per-submesh check is what caught it).
+
+**Also fixed by the same pass:** `bpy.ops.object.transform_apply()` and
+`bpy.ops.object.origin_set()` both proved unreliable in headless/background
+mode for a handful of these specific files — silently no-op'ing (identical
+output on retry) or producing a double-scale bug when combined with a second
+correction step. The working script bakes transforms via direct
+`Mesh.transform(matrix)` / vertex manipulation instead of those operators,
+which has no operator/context/cache state to misbehave.
+
+**Not yet wired up:** each vehicle's corrected `.glb` is uploaded to Tigris
+under `carmodels/<key>.glb` (e.g. `carmodels/bmwm8demo.glb`) and the DB's
+`vehicle_model.tigris_model_key` column records which object belongs to which
+row — but nothing in the AR scene actually downloads and instantiates it yet.
+`ObjectPlacerController` (`Assets/Scripts/Core/ObjectPlacerController.cs`, on
+the "ar man" GameObject in `AR Scene.unity`) still places a single fixed
+`raycastPrefab` (`Cube.prefab`) regardless of which car was selected. The
+intended path: download the selected vehicle's `tigrisModelKey` bytes at
+runtime and load them via glTFast's **runtime** API (`GltfImport`, distinct
+from the Editor-time import path glTFast also provides) rather than
+AssetBundles — glTF is a portable format glTFast can parse identically on any
+platform, so this avoids AssetBundles' per-`BuildTarget` build/upload
+duplication (Android and iOS would each need their own bundle). Not built yet,
+don't assume it exists.
 
 **`AssetBundleTest.cs`** (same "asset manager" GameObject) is a manual dev/test
-script, not production code — it's currently disabled (`m_Enabled: 0` in
-`AR Scene.unity`) because its `Start()` does a full upload/download/instantiate
-cycle every time the scene runs, which raced `GameManager.Instance`
-initialization and threw on a cold Play-mode entry straight into `AR Scene`
-(harmless in the real app flow, where `GameManager` is always already alive by
-the time this scene loads — but still worth leaving off). Re-enable only for
-deliberate manual testing.
+script demonstrating the (now-abandoned) AssetBundle download pattern — it's
+currently disabled (`m_Enabled: 0` in `AR Scene.unity`) because its `Start()`
+does a full upload/download/instantiate cycle every time the scene runs, which
+raced `GameManager.Instance` initialization and threw on a cold Play-mode entry
+straight into `AR Scene`. Left disabled; don't use it as a template for the
+glTFast-runtime path above, its download mechanics (`AssetBundle.LoadFromMemory`)
+don't apply there.
 
 ## AR viewport screen
 
@@ -274,7 +289,7 @@ for **3D AR assets only**, not 2D catalog thumbnails. There's also a second,
 separate manual-test path to the same bucket: `TigrisStorageManager` (its own S3
 client, own `UploadFileAsync`/`DownloadObjectAsync`) on the "asset manager"
 GameObject in `AR Scene.unity` — used directly (not through `IStorageService`) to
-upload the 11 demo car AssetBundles. **If you drive `TigrisStorageManager` (or any
+upload the demo cars' corrected `.glb` files. **If you drive `TigrisStorageManager` (or any
 `Task`-returning upload/download call) from an Editor script via
 `execute_code`-style reflection, never block on it with
 `.GetAwaiter().GetResult()` in a loop** — this deadlocked Unity's main thread mid-
