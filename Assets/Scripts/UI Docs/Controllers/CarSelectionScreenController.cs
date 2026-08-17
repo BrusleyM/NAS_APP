@@ -302,7 +302,8 @@ namespace NAS.UI.Controllers
             {
                 id = selectedCar.id,
                 modelName = selectedCar.carName,
-                retailPrice = selectedCar.retailPrice
+                retailPrice = selectedCar.retailPrice,
+                tigrisModelKey = selectedCar.tigrisModelKey
             };
             EventBus.Publish(new CarSelectedEvent(vehicle));
         }

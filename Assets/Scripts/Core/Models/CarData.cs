@@ -31,5 +31,8 @@ namespace NAS.Core.Models
 
         [Tooltip("Remote thumbnail URL for API-sourced cars, downloaded lazily and cached at runtime (see RemoteTextureLoader). Ignored if 'image' is already assigned.")]
         public string imageUrl;
+
+        [Tooltip("Tigris object key for this car's 3D model (.glb), downloaded and instantiated at runtime once AR placement starts. Null/empty falls back to the AR scene's default placeholder.")]
+        public string tigrisModelKey;
     }
 }
