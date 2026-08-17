@@ -22,6 +22,8 @@ namespace NAS.ARImplementation
             }
         }
 
+        public bool RaycastPrefabIsLiveInstance { get; set; }
+
         private void Awake()
         {
             if (_raycastManager == null)

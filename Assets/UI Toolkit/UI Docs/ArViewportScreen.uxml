@@ -38,7 +38,28 @@
                 <ui:Label text="Customize" class="sheet-title" />
                 <ui:Button name="sheet-close-button" class="sheet-close-button" text="&#215;" />
             </ui:VisualElement>
-            <ui:Label text="Coming soon" class="sheet-placeholder-text" />
+
+            <ui:VisualElement name="category-grid" class="category-grid">
+                <ui:Button name="category-wheel" class="category-button">
+                    <ui:Label text="&#9711;" class="category-icon" />
+                    <ui:Label text="Wheel" class="category-label" />
+                </ui:Button>
+                <ui:Button name="category-paint" class="category-button">
+                    <ui:Label text="&#127912;" class="category-icon" />
+                    <ui:Label text="Paint" class="category-label" />
+                </ui:Button>
+                <ui:Button name="category-trims" class="category-button">
+                    <ui:Label text="&#9638;" class="category-icon" />
+                    <ui:Label text="Trims" class="category-label" />
+                </ui:Button>
+                <ui:Button name="category-dashboard" class="category-button">
+                    <ui:Label text="&#9685;" class="category-icon" />
+                    <ui:Label text="Dashboard" class="category-label" />
+                </ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="swatch-row" class="swatch-row" style="display: none;" />
+            <ui:Label name="category-placeholder-text" text="Coming soon" class="sheet-placeholder-text" style="display: none;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
