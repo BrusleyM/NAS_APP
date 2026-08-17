@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using NAS.Core.Events;
 using NAS.Core.Interfaces;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace NAS.Core
         [SerializeField] private MonoBehaviour _inputProviderBehaviour; // Must implement IInputProvider
         [SerializeField] private MonoBehaviour _placementServiceBehaviour; // Must implement IARPlacementService
         [SerializeField] private ARPlaneManager _planeManager; // Optional: for plane visibility control
+        [SerializeField] private ARSession _arSession; // Disabled/re-enabled (not destroyed) across AR entry/exit - see OnEnterAr/OnExitAr
 
         [Header("Settings")]
         [SerializeField] private bool _preventMultiplePerPlane = true; // Enable/disable plane tracking
@@ -34,7 +36,42 @@ namespace NAS.Core
             {
                 Debug.LogError("Missing required dependencies. Disabling component.");
                 enabled = false;
+                return;
             }
+
+            EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
+            EventBus.Subscribe<ExitArRequestedEvent>(OnExitAr);
+        }
+
+        private void OnDisable()
+        {
+            EventBus.Unsubscribe<EnterArRequestedEvent>(OnEnterAr);
+            EventBus.Unsubscribe<ExitArRequestedEvent>(OnExitAr);
+        }
+
+        // AR Scene is loaded once and never reloaded (see ParentPageController.OnCarSelected) -
+        // these handle re-entry/exit by disabling/re-enabling ARSession and
+        // plane detection instead of relying on a fresh scene load to reset
+        // them. Disabling (not destroying) ARSession is the AR
+        // Foundation-documented way to pause tracking; re-enabling lets it
+        // attempt to recover, which is what fixed the black camera feed on
+        // the second+ AR entry - destroying and recreating it was the bug.
+        private void OnEnterAr(EnterArRequestedEvent evt)
+        {
+            if (_arSession != null)
+                _arSession.enabled = true;
+            if (_planeManager != null)
+                _planeManager.enabled = true;
+            ResetUsedPlanes();
+        }
+
+        private void OnExitAr(ExitArRequestedEvent evt)
+        {
+            DisablePlacement();
+            if (_planeManager != null)
+                _planeManager.enabled = false;
+            if (_arSession != null)
+                _arSession.enabled = false;
         }
 
         // No auto-start here on purpose - EnablePlacement() is called by
@@ -115,8 +152,26 @@ namespace NAS.Core
                     }
                     else
                     {
-                        // Place the object
-                        Instantiate(prefab, pose.position, pose.rotation);
+                        // The downloaded car model is already a live scene
+                        // instance (SelectedCarModelLoader built it once and
+                        // parked it inactive) - reposition and reveal that
+                        // same object instead of cloning it, since only one
+                        // placement ever happens per session anyway (this
+                        // coroutine loop exits after the first success). The
+                        // placeholder prefab fallback has no scene instance
+                        // yet, so it still needs a real Instantiate().
+                        GameObject placedInstance;
+                        if (_placementService.RaycastPrefabIsLiveInstance)
+                        {
+                            placedInstance = prefab;
+                            placedInstance.transform.SetPositionAndRotation(pose.position, pose.rotation);
+                            placedInstance.SetActive(true);
+                        }
+                        else
+                        {
+                            placedInstance = Instantiate(prefab, pose.position, pose.rotation);
+                        }
+                        EventBus.Publish(new CarPlacedEvent(placedInstance));
 
                         if (_preventMultiplePerPlane)
                             _usedPlanes.Add(planeId);

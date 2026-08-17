@@ -32,6 +32,21 @@ namespace NAS.Core
         public string AccessToken { get; private set; }
         public VehicleInfo SelectedCar { get; private set; }
         public bool ReturnToEstimator { get; set; } = false;
+        // Set by ParentPageController once the splash card has been shown/dismissed
+        // for this app session, so returning to "Main App" from the AR scene (Back/
+        // Confirm both reload this scene) doesn't show the splash again every time -
+        // only once, on cold start. Lives here rather than as a scene-local bool on
+        // ParentPageController because that controller (and its GameObject) gets
+        // torn down and recreated on every "Main App" scene load; GameManager is the
+        // DontDestroyOnLoad singleton that actually survives across it.
+        public bool HasShownSplash { get; set; } = false;
+        // Set once AR Scene has been additively loaded for the first time this
+        // app session. AR Scene is deliberately never unloaded/reloaded after
+        // that - re-entering AR toggles visibility/tracking instead of a full
+        // scene reload, which is what was causing a black camera feed on the
+        // second+ entry (destroying and recreating ARSession/XROrigin is not
+        // the AR Foundation-documented pattern; disabling/re-enabling is).
+        public bool IsArSceneLoaded { get; set; } = false;
 
         private IStorageService _storage;
 
@@ -46,10 +61,20 @@ namespace NAS.Core
             DontDestroyOnLoad(gameObject);
 
             InitializeStorage();
-        }
 
-        private void OnEnable()
-        {
+            // Subscribing here rather than in OnEnable() is deliberate: Unity
+            // guarantees every object's Awake() finishes before any object's
+            // OnEnable() runs, within the same load - but does NOT guarantee
+            // Awake()/OnEnable() ordering ACROSS different GameObjects
+            // otherwise. This is what let a real bug happen: a UI controller
+            // read GameManager.AccessToken before GameManager's own handler
+            // for that login had run yet, sending an unauthenticated request
+            // ("Please sign in to continue" on device). The actual structural
+            // fix for THAT class of bug is the Session*Event pattern below
+            // (see AuthSucceededEvent/SessionAuthenticatedEvent's doc comments
+            // in GameEvents.cs) - subscribing here in Awake() is kept anyway
+            // as defense in depth, so GameManager is guaranteed ready before
+            // anything else in the scene, for any event it's ever given.
             EventBus.Subscribe<AuthSucceededEvent>(OnAuthSucceeded);
             EventBus.Subscribe<CarSelectedEvent>(OnCarSelected);
             EventBus.Subscribe<ReturnToEstimatorRequestedEvent>(OnReturnToEstimatorRequested);
@@ -62,12 +87,23 @@ namespace NAS.Core
             EventBus.Unsubscribe<ReturnToEstimatorRequestedEvent>(OnReturnToEstimatorRequested);
         }
 
+        // Publishing the Session*Event AFTER the field assignment (not
+        // before) is the actual guarantee here - it's what makes it
+        // structurally impossible for a subscriber to observe this event
+        // before the state it describes is set, regardless of subscription
+        // order. Don't reorder these.
         private void OnAuthSucceeded(AuthSucceededEvent evt)
         {
             CurrentUser = evt.User;
             AccessToken = evt.AccessToken;
+            EventBus.Publish(new SessionAuthenticatedEvent(CurrentUser, AccessToken));
         }
-        private void OnCarSelected(CarSelectedEvent evt) => SelectedCar = evt.Vehicle;
+
+        private void OnCarSelected(CarSelectedEvent evt)
+        {
+            SelectedCar = evt.Vehicle;
+            EventBus.Publish(new SessionCarSelectedEvent(SelectedCar));
+        }
         private void OnReturnToEstimatorRequested(ReturnToEstimatorRequestedEvent evt) => ReturnToEstimator = true;
 
         private void InitializeStorage()

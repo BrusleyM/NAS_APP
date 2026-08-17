@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NAS.Core.Models;
+using UnityEngine;
 
 namespace NAS.Core.Events
 {
@@ -38,12 +39,43 @@ namespace NAS.Core.Events
         }
     }
 
-    /// <summary>Raised by AuthController once login or registration succeeds.</summary>
+    /// <summary>
+    /// Raised by AuthController once login or registration succeeds. This is
+    /// the raw fact - GameManager is the only thing that should subscribe to
+    /// it directly. Anything else that needs to react to a completed login
+    /// (e.g. to navigate) should subscribe to SessionAuthenticatedEvent
+    /// instead, which GameManager publishes AFTER CurrentUser/AccessToken are
+    /// already set. Subscribing to this one directly risks reading
+    /// GameManager.Instance before it's actually updated - Unity doesn't
+    /// guarantee GameManager's handler runs first just because two scripts
+    /// both subscribed to the same event (this caused a real bug: a vehicle
+    /// catalog request went out with a null token because the screen that
+    /// triggered it read GameManager.AccessToken before GameManager's own
+    /// handler for this same event had set it).
+    /// </summary>
     public readonly struct AuthSucceededEvent
     {
         public readonly User User;
         public readonly string AccessToken;
         public AuthSucceededEvent(User user, string accessToken)
+        {
+            User = user;
+            AccessToken = accessToken;
+        }
+    }
+
+    /// <summary>
+    /// Raised by GameManager right after it applies an AuthSucceededEvent to
+    /// its own CurrentUser/AccessToken. Subscribe to THIS, not
+    /// AuthSucceededEvent, if you need to react to login and might read
+    /// GameManager.Instance state while doing so - see AuthSucceededEvent's
+    /// doc comment for why.
+    /// </summary>
+    public readonly struct SessionAuthenticatedEvent
+    {
+        public readonly User User;
+        public readonly string AccessToken;
+        public SessionAuthenticatedEvent(User user, string accessToken)
         {
             User = user;
             AccessToken = accessToken;
@@ -72,17 +104,65 @@ namespace NAS.Core.Events
     public readonly struct NavigateToRegisterRequestedEvent { }
     public readonly struct NavigateToLoginRequestedEvent { }
 
+    /// <summary>Raised by SplashScreenController when the user taps "Get Started" on the splash card.</summary>
+    public readonly struct SplashDismissedEvent { }
+
     // ---- Car selection flow -------------------------------------------------------
 
-    /// <summary>Raised by CarSelectionScreenController when the user picks a car and starts AR.</summary>
+    /// <summary>
+    /// Raised by CarSelectionScreenController when the user picks a car and
+    /// starts AR. The raw fact - GameManager is the only thing that should
+    /// subscribe to it directly (same reasoning as AuthSucceededEvent above).
+    /// Anything else reacting to car selection should subscribe to
+    /// SessionCarSelectedEvent instead.
+    /// </summary>
     public readonly struct CarSelectedEvent
     {
         public readonly VehicleInfo Vehicle;
         public CarSelectedEvent(VehicleInfo vehicle) => Vehicle = vehicle;
     }
 
+    /// <summary>
+    /// Raised by GameManager right after it applies a CarSelectedEvent to its
+    /// own SelectedCar. Subscribe to THIS, not CarSelectedEvent, if you need
+    /// to react to car selection and might read GameManager.Instance state
+    /// while doing so.
+    /// </summary>
+    public readonly struct SessionCarSelectedEvent
+    {
+        public readonly VehicleInfo Vehicle;
+        public SessionCarSelectedEvent(VehicleInfo vehicle) => Vehicle = vehicle;
+    }
+
+    // ---- AR scene lifecycle -------------------------------------------------------
+    // AR Scene is loaded additively exactly once (see GameManager.IsArSceneLoaded)
+    // and never reloaded after that - these two drive showing/hiding it on
+    // every entry/exit after the first, instead of a SceneManager.LoadScene
+    // reload (which was destroying and recreating ARSession/XROrigin every
+    // time, causing a black camera feed on the second+ AR entry).
+
+    /// <summary>Raised by ParentPageController when AR Scene is already loaded and the user is entering AR again (second+ visit this app session).</summary>
+    public readonly struct EnterArRequestedEvent { }
+
+    /// <summary>Raised by ArViewportController when the user backs out or confirms, to hand control back to ParentPageController without reloading either scene.</summary>
+    public readonly struct ExitArRequestedEvent { }
+
     /// <summary>Raised by AR flow controllers when the user backs out to the estimator card.</summary>
     public readonly struct ReturnToEstimatorRequestedEvent { }
+
+    /// <summary>Raised by ObjectPlacerController right after it instantiates the placed car in the AR scene.</summary>
+    public readonly struct CarPlacedEvent
+    {
+        public readonly GameObject Instance;
+        public CarPlacedEvent(GameObject instance) => Instance = instance;
+    }
+
+    /// <summary>Raised by ArViewportController when the user taps a paint swatch in the Customize sheet.</summary>
+    public readonly struct PaintColorSelectedEvent
+    {
+        public readonly string HexCode;
+        public PaintColorSelectedEvent(string hexCode) => HexCode = hexCode;
+    }
 
     // ---- Estimator flow -------------------------------------------------------
 
