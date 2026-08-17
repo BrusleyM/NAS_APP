@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/ArViewportScreen.uss" />
+
+    <ui:VisualElement name="ar-viewport-root" class="ar-viewport-root" picking-mode="Ignore">
+        <ui:VisualElement name="top-bar" class="top-bar">
+            <ui:Button name="back-button" class="back-button">
+                <ui:Label text="&#8249;" class="back-chevron" />
+                <ui:Label text="Back" class="back-text" />
+            </ui:Button>
+
+            <ui:Label name="car-name-label" text="Car Name" class="car-name-label" />
+
+            <ui:Button name="confirm-button" class="confirm-button">
+                <ui:Label text="&#10003;" class="confirm-icon" />
+            </ui:Button>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="gesture-hints" class="gesture-hints" picking-mode="Ignore">
+            <ui:Label text="Swipe to rotate" class="gesture-hint-label" />
+            <ui:Label text="Pinch to scale" class="gesture-hint-label" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="settings-button-row" class="settings-button-row" picking-mode="Ignore">
+            <ui:Button name="settings-button" class="settings-button">
+                <ui:Label text="&#9881;" class="settings-icon" />
+            </ui:Button>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="sheet-backdrop" class="sheet-backdrop" style="display: none;" />
+
+        <ui:VisualElement name="customize-sheet" class="customize-sheet" style="display: none;">
+            <ui:VisualElement name="sheet-drag-handle" class="sheet-drag-handle" />
+            <ui:VisualElement name="sheet-header" class="sheet-header">
+                <ui:Label text="Customize" class="sheet-title" />
+                <ui:Button name="sheet-close-button" class="sheet-close-button" text="&#215;" />
+            </ui:VisualElement>
+            <ui:Label text="Coming soon" class="sheet-placeholder-text" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

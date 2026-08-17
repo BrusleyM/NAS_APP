@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.SceneManagement;
 using NAS.Core;
 using NAS.Core.Events;
 using NAS.Core.Networking;
@@ -16,6 +17,8 @@ namespace NAS.UI.Controllers
     /// </summary>
     public class ParentPageController : MonoBehaviour
     {
+        private const string ArSceneName = "AR Scene";
+
         [SerializeField] private VisualTreeAsset _loginCardUxml;
         [SerializeField] private VisualTreeAsset _registerCardUxml;
         [SerializeField] private VisualTreeAsset _carSelectionCardUxml;
@@ -92,7 +95,14 @@ namespace NAS.UI.Controllers
         private void OnAuthSucceeded(AuthSucceededEvent evt) => ShowCarSelectionScreen();
         private void OnNavigateToRegister(NavigateToRegisterRequestedEvent evt) => ShowRegisterCard();
         private void OnNavigateToLogin(NavigateToLoginRequestedEvent evt) => ShowLoginCard();
-        private void OnCarSelected(CarSelectedEvent evt) => ShowEstimatorCard();
+        // Loads the AR scene rather than showing a card here - unlike the other
+        // screens, the AR viewport is a real separate Unity scene (AR Scene.unity,
+        // with its own AR Foundation session/XR Origin), not another UI Toolkit
+        // card swapped into _cardContainer. ArViewportController (in that scene)
+        // owns the Back/Confirm buttons that bring the user back to this scene -
+        // see its comments for how DecideInitialScreen() picks the right card
+        // to show on return.
+        private void OnCarSelected(CarSelectedEvent evt) => SceneManager.LoadScene(ArSceneName);
 
         private void SetBackgroundImage(VisualElement root)
         {

@@ -1,0 +1,179 @@
+.ar-viewport-root {
+    flex-grow: 1;
+    position: relative;
+    height: 100%;
+    background-color: transparent;
+}
+
+.top-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 16px 24px 16px;
+    background-color: rgba(18, 18, 18, 0.55);
+}
+
+.back-button {
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin: 0;
+}
+
+.back-button:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.back-chevron {
+    color: rgb(192, 192, 192);
+    font-size: 14px;
+    margin-right: 2px;
+}
+
+.back-text {
+    color: rgb(192, 192, 192);
+    font-size: 12px;
+}
+
+.car-name-label {
+    color: rgb(192, 192, 192);
+    font-size: 12px;
+    -unity-text-align: middle-center;
+}
+
+.confirm-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background-color: rgba(0, 212, 255, 0.2);
+    border-width: 2px;
+    border-color: rgba(0, 212, 255, 0.7);
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+.confirm-button:hover {
+    background-color: rgba(0, 212, 255, 0.35);
+}
+
+.confirm-icon {
+    color: rgb(0, 212, 255);
+    font-size: 16px;
+    -unity-text-align: middle-center;
+}
+
+.gesture-hints {
+    position: absolute;
+    left: 16px;
+    bottom: 96px;
+}
+
+.gesture-hint-label {
+    color: rgba(192, 192, 192, 0.6);
+    font-size: 12px;
+}
+
+.settings-button-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: rgba(18, 18, 18, 0.85);
+    border-width: 1.5px;
+    border-color: rgba(0, 212, 255, 0.45);
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+.settings-button:hover {
+    background-color: rgba(18, 18, 18, 0.95);
+    border-color: rgba(0, 212, 255, 0.7);
+}
+
+.settings-icon {
+    color: rgb(0, 212, 255);
+    font-size: 24px;
+    -unity-text-align: middle-center;
+}
+
+.sheet-backdrop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.customize-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(14, 14, 14, 0.97);
+    border-top-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-color: rgba(192, 192, 192, 0.15);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding-bottom: 24px;
+}
+
+.sheet-drag-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(192, 192, 192, 0.3);
+    align-self: center;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.sheet-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px 16px 24px;
+}
+
+.sheet-title {
+    color: rgb(192, 192, 192);
+    font-size: 14px;
+}
+
+.sheet-close-button {
+    background-color: transparent;
+    border-width: 0;
+    color: rgba(192, 192, 192, 0.6);
+    font-size: 16px;
+    padding: 4px;
+    margin: 0;
+}
+
+.sheet-placeholder-text {
+    color: rgba(192, 192, 192, 0.6);
+    font-size: 13px;
+    -unity-text-align: middle-center;
+    padding: 0 24px 8px 24px;
+}

@@ -156,7 +156,7 @@ namespace NAS.UI.Controllers
             if (!result.Success)
                 Debug.LogWarning($"{LogPrefix} Vehicle catalog fetch failed: {result.Error.Detail}");
 
-            UpdateFilteredCars();
+            UpdateFilteredCars(restoreSelectedIndex: true);
         }
 
         // No automatic fallback to Resources.LoadAll on failure - local fixture
@@ -232,7 +232,10 @@ namespace NAS.UI.Controllers
             _dropdownMenu.style.width = buttonBound.width;
         }
 
-        private void UpdateFilteredCars()
+        // restoreSelectedIndex is only true right after a fresh vehicle-list load
+        // (see OnVehiclesLoaded) - a filter/search change should always reset to
+        // index 0 like before, not keep jumping back to the previously selected car.
+        private void UpdateFilteredCars(bool restoreSelectedIndex = false)
         {
             if (_allCars == null)
                 return;
@@ -248,8 +251,24 @@ namespace NAS.UI.Controllers
                  (car.category ?? string.Empty).ToLower().Contains(_searchQuery.ToLower()))
             );
 
+            int startIndex = 0;
+            if (restoreSelectedIndex)
+            {
+                // GameManager.SelectedCar survives the AR Scene round-trip (it's a
+                // DontDestroyOnLoad singleton) - find where that car landed in the
+                // freshly fetched list. Falls back to 0 if nothing was selected yet,
+                // or the car is no longer present (e.g. went inactive server-side).
+                var selected = GameManager.Instance != null ? GameManager.Instance.SelectedCar : null;
+                if (selected != null)
+                {
+                    int idx = _filteredCars.FindIndex(c => c.id == selected.id);
+                    if (idx >= 0)
+                        startIndex = idx;
+                }
+            }
+
             if (_pager != null)
-                _pager.SetCars(_filteredCars, startIndex: 0);
+                _pager.SetCars(_filteredCars, startIndex);
 
             UpdateEmptyState();
         }
@@ -281,6 +300,7 @@ namespace NAS.UI.Controllers
             var selectedCar = _pager.SelectedCar;
             var vehicle = new VehicleInfo
             {
+                id = selectedCar.id,
                 modelName = selectedCar.carName,
                 retailPrice = selectedCar.retailPrice
             };

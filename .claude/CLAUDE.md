@@ -146,6 +146,67 @@ API now exists, treat everything above about `Resources.LoadAll`/`Assets/Resourc
 as historical, not current architecture, and look for the actual `IVehicleCatalogApi`
 (or equivalent) instead.
 
+## AR viewport screen
+
+Design source: `ARViewportScreen` in `mobile-designs.tsx` (the code-bundle export
+lives outside this repo, under `~/Downloads/NAS Showroom/src/app/components/` when
+last checked — re-locate it via that folder name if it's moved).
+
+**Important architectural correction vs. what this doc used to say:** the AR
+viewport is a **real separate Unity scene** (`Assets/Scenes/AR Scene.unity`, with
+its own `AR Session`/`XR Origin`/AR Foundation setup, already in
+`ProjectSettings/EditorBuildSettings.asset`), not another UI Toolkit card added
+dynamically via `AddComponent<T>()` into `ParentPageController`'s `_cardContainer`
+the way Login/CarSelection/Estimator are. `Main App.unity` is also now registered
+in Build Settings (it wasn't before this was built — required for
+`SceneManager.LoadScene(string)` to resolve it by name).
+
+Screen flow, as actually wired:
+- `CarSelectionScreenController.OnStartARClicked` publishes `CarSelectedEvent`
+  (`GameManager.SelectedCar` updates from it, including `VehicleInfo.id`, which
+  survives the scene load since `GameManager` is `DontDestroyOnLoad`).
+- `ParentPageController.OnCarSelected` calls `SceneManager.LoadScene("AR Scene")`
+  — no card, no `ShowArViewportCard()`.
+- `AR Scene.unity` has a pre-placed `AR UI` GameObject (`UIDocument` + a
+  scene-placed, **not** `AddComponent`-dynamic, `ArViewportController`) —
+  `Assets/UI Toolkit/UI Docs/ArViewportScreen.uxml` /
+  `Styles/ArViewportScreen.uss`. `ArViewportController.OnEnable` reads
+  `GameManager.Instance.SelectedCar.modelName` straight into the car-name label.
+- **Back button** → `SceneManager.LoadScene("Main App")` with no event published.
+  Back in `Main App.unity`, `ParentPageController.DecideInitialScreen()` sees
+  `CurrentUser`+`SelectedCar` already set and `ReturnToEstimator` false, so it
+  calls `ShowCarSelectionScreen()` — which restores the previously selected car's
+  position via `CarSelectionScreenController`'s index-restore logic (matches
+  `_filteredCars` against `GameManager.SelectedCar.id`, falls back to index 0 if
+  not found).
+- **Confirm (checkmark) button** → publishes `ReturnToEstimatorRequestedEvent`
+  (the same event `GameManager` already listened for, previously only used when
+  backing out of an in-progress estimate) then loads `Main App`.
+  `DecideInitialScreen()` sees `ReturnToEstimator` true and calls
+  `ShowEstimatorCard()` instead, resetting the flag.
+
+**Built so far:** top bar (Back button, centered car name label, circular cyan
+Confirm/checkmark button), the two gesture-hint text labels ("Swipe to rotate" /
+"Pinch to scale", bottom-left, non-interactive — `picking-mode="Ignore"` so they
+don't block AR touch gestures), and a bottom-center Settings button that opens a
+placeholder "Customize" bottom sheet (drag handle, header with close button, just
+a "Coming soon" label — tapping the backdrop or the close button closes it).
+Colors match the Figma spec (`#C0C0C0` neutral, `#00D4FF` active/accent) but
+`box-shadow` glow wasn't reproduced (UI Toolkit's USS support for it wasn't used
+here — check current Unity version support before assuming it's unavailable).
+
+**Not yet built:** the camera-feed gradient scrim, and the real contents of the
+"Customize" sheet (the Wheel/Paint/Trims/Dashboard 4-item grid, Paint's 5 color
+swatches, the other three categories' text-choice rows) — the sheet currently
+opens/closes but shows only placeholder text. Deliberately deferred — there's no
+customer-facing data model yet for which options are actually configurable per car
+(see the "Planned: API-driven vehicle catalog" section above; trim/color/interior/
+wheel data was explicitly scoped out of the car-selection API work). Build this
+grid once that data exists, following the
+same pattern as the top bar (scene-placed controller in `AR Scene.unity`, not
+`AddComponent`-dynamic — this scene only ever shows one screen, so it doesn't need
+`ParentPageController`'s router pattern).
+
 ## Recurring gotcha: inline UXML styles silently override USS class rules
 
 This has caused real, hard-to-spot bugs multiple times in this project. Inline
