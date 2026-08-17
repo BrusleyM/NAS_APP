@@ -121,30 +121,71 @@ verify per-file if it matters for what you're doing.
   `PointerMove` (clamped `translate` on `_carsContainer`, follows the finger 1:1) →
   `PointerUp` (25%-of-viewport-width threshold decides commit vs. snap back;
   either way, snaps `translate` back to `0` — no easing, this is intentional).
-- `CarData` (`Assets/Scripts/Core/Models/CarData.cs`) is a `ScriptableObject`,
-  currently loaded via `Resources.LoadAll<CarData>("Cars")` from
-  `Assets/Resources/Cars/`. **As of last check, only 1 of a planned 7 cars actually
-  exists as an asset** (`TeslaModelS`) — confirm current state before assuming the
-  catalog is complete, and don't be surprised if the count has changed.
+- `CarData` (`Assets/Scripts/Core/Models/CarData.cs`) is a `ScriptableObject`, but
+  there are no more hand-authored `.asset` fixtures — `Assets/Resources/Cars/` is
+  gone. Every `CarData` instance is created at runtime by
+  `VehicleDtoMapper.ToCarData()` (`Core/Vehicles/VehicleDtoMapper.cs`) from the
+  customer vehicle API response. `CarPager`, `CarCardView`, and
+  `CarSelectionScreenController` only ever interact with the `CarData` *type* —
+  they don't know or care that it's API-sourced, which is what made this migration
+  low-risk when it happened.
 
-### Planned: API-driven vehicle catalog (not yet built)
+## Vehicle catalog: real 3D models, not just names (`Assets/Prefabs/Cars/`)
 
-`Resources.LoadAll` is a known-temporary stepping stone, not the intended long-term
-source of the car list. The plan is a real vehicles table in a database, fetched
-through an API — following the same pattern as `ICustomerAuthApi`/`CustomerAuthApi`
-in `Core/Auth` (e.g. an `IVehicleCatalogApi` returning `ApiResult<List<VehicleDto>>`).
+The catalog is 11 vehicles named `<Make/Model> DEMO` (e.g. `BMW M8 DEMO`) — the
+`DEMO` suffix is deliberate on both the DB row and the Tigris object key, so
+nothing in the shipped app reads as an actual partnership with the real
+manufacturers. Backing 3D models live in `Assets/Models/cars/*.glb` (glTFast
+imports), each wrapped by a corrective prefab in `Assets/Prefabs/Cars/` (e.g.
+`BMWM8Demo.prefab`) — **never place a raw imported `.glb` directly**, always go
+through its prefab.
 
-**The seam that makes this low-risk:** `CarPager`, `CarCardView`, and
-`CarSelectionScreenController` only ever interact with the `CarData` *type* — none of
-them know or care that it currently comes from `Resources.LoadAll`. When the API
-exists, the swap is: fetch DTOs, call `ScriptableObject.CreateInstance<CarData>()`
-per result, copy fields over, hand the list to `CarPager.SetCars(...)` exactly as
-today. No changes needed to pooling, drag/swipe, or card rendering.
+**Why the wrapper prefabs exist — two real bugs found in the raw imports:**
+1. **Scale.** Several of these Sketchfab-sourced `.glb` files import at wildly
+   wrong scale (some ~100x too small, some ~5-10x too big) — glTF is spec'd in
+   meters so this is baked into the source file, not a Unity import setting.
+   Measure with combined `Renderer.bounds` across all child renderers (a
+   *median-filtered* max-dimension check catches stray artifact meshes — e.g.
+   `bmw_x6m.glb` had one tiny orphaned mesh sitting 7+ units from the car body
+   that blew out the naive combined bounds to 10m) and compare against the
+   vehicle's real-world length before trusting either the raw bounds or a
+   "looks fine" visual at an arbitrary zoom level.
+2. **Orientation and pivot.** All 11 source models import standing on their
+   nose (length along Unity's +Y, not forward/Z) and with their pivot **not**
+   at the vehicle's centered, ground-level point — a couple were off by
+   several meters on X/Z, and one sat with its lowest point 0.6m below Y=0.
+   Each prefab's `Model` child carries a corrective `localRotation` (-90° X,
+   plus a further 90° Y for the one model whose length ended up on X instead
+   of Z) and `localPosition` shift so that at rest: the car lies flat, length
+   runs along +Z, height along +Y, and the prefab's own root pivot sits
+   exactly at the car's centered, ground-touching point — required for
+   `Instantiate(prefab, hitPose.position, hitPose.rotation)`-style AR
+   placement to put the car where the user actually tapped, sitting on the
+   ground, not floating/sunk/offset. If a new car model is ever added this
+   way, verify scale + orientation + pivot the same way before trusting it —
+   this was found the hard way, mid-session, on this exact batch.
 
-**Before doing that migration, check whether it's still current** — if the vehicles
-API now exists, treat everything above about `Resources.LoadAll`/`Assets/Resources/Cars`
-as historical, not current architecture, and look for the actual `IVehicleCatalogApi`
-(or equivalent) instead.
+**Not yet wired up:** each vehicle's Tigris-hosted AssetBundle (built via
+`BuildPipeline.BuildAssetBundles`, bundle name `carmodels/<key>`, e.g.
+`carmodels/bmwm8demo`) is uploaded and the DB's `vehicle_model.tigris_model_key`
+column records which bundle belongs to which row — but nothing in the AR scene
+actually downloads and instantiates it yet. `ObjectPlacerController`
+(`Assets/Scripts/Core/ObjectPlacerController.cs`, on the "ar man" GameObject in
+`AR Scene.unity`) still places a single fixed `raycastPrefab` regardless of
+which car was selected. Wiring `GameManager.SelectedCar` through to a real
+per-car download (mirroring `AssetBundleTest.cs`'s
+download-bundle-then-`LoadAsset<GameObject>` pattern, but driven by the
+selected vehicle's `tigrisModelKey` instead of a hardcoded key) is the natural
+next step — not built yet, don't assume it exists.
+
+**`AssetBundleTest.cs`** (same "asset manager" GameObject) is a manual dev/test
+script, not production code — it's currently disabled (`m_Enabled: 0` in
+`AR Scene.unity`) because its `Start()` does a full upload/download/instantiate
+cycle every time the scene runs, which raced `GameManager.Instance`
+initialization and threw on a cold Play-mode entry straight into `AR Scene`
+(harmless in the real app flow, where `GameManager` is always already alive by
+the time this scene loads — but still worth leaving off). Re-enable only for
+deliberate manual testing.
 
 ## AR viewport screen
 
@@ -229,15 +270,24 @@ the Inspector, so this specifically matters for anything that *is* Inspector-wir
 
 `GameManager` owns an `IStorageService` (`DevStorageService`) for uploading/
 downloading 3D models by string key (`UploadModel`, `DownloadModel`, etc.) — this is
-for **3D AR assets only**, not 2D catalog thumbnails. If `CarData` gains a
-Tigris-backed model reference, the natural field name is something like
-`tigrisModelKey : string`, matching the existing `DownloadModel(string modelKey)`
-signature.
+for **3D AR assets only**, not 2D catalog thumbnails. There's also a second,
+separate manual-test path to the same bucket: `TigrisStorageManager` (its own S3
+client, own `UploadFileAsync`/`DownloadObjectAsync`) on the "asset manager"
+GameObject in `AR Scene.unity` — used directly (not through `IStorageService`) to
+upload the 11 demo car AssetBundles. **If you drive `TigrisStorageManager` (or any
+`Task`-returning upload/download call) from an Editor script via
+`execute_code`-style reflection, never block on it with
+`.GetAwaiter().GetResult()` in a loop** — this deadlocked Unity's main thread mid-
+session after the first of 11 uploads (killed the Editor's responsiveness to
+Stop/console entirely; only a lightweight ping-style check still answered). Fire
+each call without awaiting it in the same script invocation, or drive it through a
+coroutine, and verify completion out-of-band (e.g. list the bucket) instead of
+blocking in-process.
 
-Once the planned vehicles DB table (see above) exists, each row is the natural place
-to store that `tigrisModelKey` alongside the car's other fields — the DB becomes the
-join point between "which car" and "which 3D model," rather than Tigris and the DB
-being two unrelated systems Unity has to reconcile itself.
+`vehicle_model.tigris_model_key` (backend, nullable `varchar(200)`) is where each
+row's Tigris object key lives — see "Vehicle catalog: real 3D models" above for the
+current state of that join (uploaded and recorded in the DB, not yet consumed by
+Unity for actual AR placement).
 
 ### TODO, not urgent — Tigris environment handling doesn't match Auth's pattern
 
