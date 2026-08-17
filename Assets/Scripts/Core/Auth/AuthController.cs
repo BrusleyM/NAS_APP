@@ -80,8 +80,8 @@ private void HandleLoginRequested(LoginRequestedEvent evt)
 
             if (string.IsNullOrWhiteSpace(evt.Password))
                 errors["password"] = "Password is required.";
-            else if (evt.Password.Length < 6)
-                errors["password"] = "Password must be at least 6 characters.";
+            else if (evt.Password.Length < 8)
+                errors["password"] = "Password must be at least 8 characters.";
 
             if (errors.Count > 0)
             {
@@ -132,8 +132,8 @@ private void HandleRegisterRequested(RegisterRequestedEvent evt)
 
             if (string.IsNullOrWhiteSpace(evt.Password))
                 errors["password"] = "Password is required.";
-            else if (evt.Password.Length < 6)
-                errors["password"] = "Password must be at least 6 characters.";
+            else if (evt.Password.Length < 8)
+                errors["password"] = "Password must be at least 8 characters.";
 
             if (string.IsNullOrWhiteSpace(evt.ConfirmPassword))
                 errors["confirmPassword"] = "Please confirm your password.";

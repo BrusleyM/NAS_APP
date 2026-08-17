@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace NAS.Core.Models
 {
     [System.Serializable]
@@ -7,5 +9,6 @@ namespace NAS.Core.Models
         public string modelName;
         public float retailPrice;
         public string tigrisModelKey;
+        public List<CarColorOption> exteriorColors = new List<CarColorOption>();
     }
 }

@@ -13,5 +13,6 @@ namespace NAS.Core.Vehicles.Dtos
         public string powertrain;
         public string imageUrl;
         public string tigrisModelKey;
+        public VehicleColorDto[] exteriorColors;
     }
 }

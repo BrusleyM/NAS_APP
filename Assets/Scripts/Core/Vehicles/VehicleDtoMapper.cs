@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using NAS.Core.Models;
 using NAS.Core.Vehicles.Dtos;
 using UnityEngine;
@@ -17,6 +19,9 @@ namespace NAS.Core.Vehicles
             car.category = dto.powertrain;
             car.imageUrl = dto.imageUrl;
             car.tigrisModelKey = dto.tigrisModelKey;
+            car.exteriorColors = (dto.exteriorColors ?? System.Array.Empty<VehicleColorDto>())
+                .Select(c => new CarColorOption { id = c.id, name = c.name, hexCode = c.hexCode, priceAdjustment = c.priceAdjustment })
+                .ToList();
             return car;
         }
     }

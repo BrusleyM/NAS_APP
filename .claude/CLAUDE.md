@@ -25,6 +25,55 @@ but should happen as one deliberate, dedicated pass across every call site —
 not piecemeal, one at a time, whenever a new feature happens to touch
 `GameManager`.
 
+**This is a deliberate hybrid, not an oversight — keep it that way.**
+`GameManager` is the sole direct subscriber to the raw domain events that
+feed its session state (`AuthSucceededEvent`, `CarSelectedEvent`) — nothing
+else subscribes to those two directly. After updating its own
+`CurrentUser`/`AccessToken`/`SelectedCar`, it republishes its own
+`SessionAuthenticatedEvent`/`SessionCarSelectedEvent`, and everything else
+(`ParentPageController`, and any future screen that needs to react to auth or
+car selection) subscribes to THOSE instead. This is what makes it safe to
+read `GameManager.Instance` state from inside one of those handlers: since
+`GameManager` only publishes the `Session*Event` after its own field is
+already set, it's structurally impossible for a subscriber to observe it
+early, regardless of subscription order. Moving to "every consumer
+subscribes to the raw event itself, nothing reads `Instance`" was considered
+and rejected — it doesn't remove any real risk beyond what the republish
+pattern already gives, and forces every future screen needing session state
+to re-subscribe to auth/car-selection events itself, real ongoing overhead
+for no upside.
+
+This exists because of a real bug: `CarSelectionScreenController` read
+`AccessToken` from within `AuthSucceededEvent`'s own handling chain (via
+`ParentPageController.OnAuthSucceeded` → `ShowCarSelectionScreen()` →
+`AddComponent<CarSelectionScreenController>()` → `OnEnable()`), before
+`GameManager.OnAuthSucceeded` had set it — a null token went out on the
+vehicle-catalog request, backend correctly rejected it as unauthorized. First
+fix attempt was moving `GameManager`'s event subscriptions from `OnEnable()`
+to `Awake()` (Unity guarantees every object's `Awake()` finishes before any
+object's `OnEnable()` runs within the same load, so this made `GameManager`'s
+handler win the race) — that's still in place and still correct practice,
+kept as defense in depth, but it's no longer the thing actually preventing
+this bug. The `Session*Event` republish pattern above is the actual structural fix: it doesn't depend
+on execution-order trivia at all, so it can't quietly break if someone adds a
+new event without knowing to apply the `Awake()` rule to it.
+
+**The rule going forward**: if a new event needs GameManager to update its
+own state AND other scripts need to react with that state already
+guaranteed-current, add a `Session*Event` GameManager publishes after the
+update, same as the two above — don't have consumers subscribe to the raw
+event and read `GameManager.Instance` inside the handler. `ReturnToEstimatorRequestedEvent`
+doesn't have a `Session*Event` counterpart yet because nothing currently
+reacts to it synchronously (it's checked later via the `ReturnToEstimator`
+flag in `DecideInitialScreen()`) — add one if that ever changes, don't add it
+speculatively now.
+
+The remaining direct-`Instance` reads named above (`EstimatorCardController`,
+`AuthController`'s `CurrentEnvironment`, the storage test scripts) aren't
+reading data derived from a same-frame event the way the fixed bug was —
+they're a separate, milder concern (coupling/testability), still worth the
+dedicated pass mentioned above eventually, just not urgent or bug-causing.
+
 **Screen flow (current order):** Auth → car selection → AR placement →
 affordability calculator/estimator. `ParentPageController` is a pure
 router — it holds `VisualTreeAsset` references for each screen (assigned in
@@ -74,14 +123,12 @@ explicitly through `CustomerAuthApi`'s and `ApiClient`'s constructors (see
 the cert gotcha below) — **keep this a single source of truth for both
 concerns.** A design with two independently-toggleable flags (one for which
 `ApiSettings` to use, one for cert trust) will eventually drift out of sync,
-since nothing stops either one being flipped without the other. **The
-committed default is `AppEnvironment.Local`, and it must stay that way** —
-`ApiDomain` only works on a machine with the nginx/mkcert/`/etc/hosts` setup
-from `NAS_Backend/nginx/README.md` already running; on any other machine it
-makes auth fail silently. If you find this set to `ApiDomain` in a diff that
-isn't explicitly about device HTTPS testing, that's very likely an
-accidental commit — flip it back. See the README's "Optional: HTTPS for
-testing on a physical device" section for the full explanation.
+since nothing stops either one being flipped without the other. `Local` is
+the simplest default for anyone without the nginx/mkcert setup running;
+`ApiDomain` only works on a machine with that setup
+(`NAS_Backend/nginx/README.md`) already running — on any other machine it
+makes auth fail silently. See the README's "Optional: HTTPS for testing on a
+physical device" section for the full explanation.
 
 **Recurring gotcha: adding a cross-folder script reference can compile
 "clean" right up until it doesn't.** This project uses one `.asmdef` per
@@ -178,20 +225,27 @@ correction step. The working script bakes transforms via direct
 `Mesh.transform(matrix)` / vertex manipulation instead of those operators,
 which has no operator/context/cache state to misbehave.
 
-**Not yet wired up:** each vehicle's corrected `.glb` is uploaded to Tigris
-under `carmodels/<key>.glb` (e.g. `carmodels/bmwm8demo.glb`) and the DB's
+**Now wired up:** each vehicle's corrected `.glb` is uploaded to Tigris under
+`carmodels/<key>.glb` (e.g. `carmodels/bmwm8demo.glb`), the DB's
 `vehicle_model.tigris_model_key` column records which object belongs to which
-row — but nothing in the AR scene actually downloads and instantiates it yet.
-`ObjectPlacerController` (`Assets/Scripts/Core/ObjectPlacerController.cs`, on
-the "ar man" GameObject in `AR Scene.unity`) still places a single fixed
-`raycastPrefab` (`Cube.prefab`) regardless of which car was selected. The
-intended path: download the selected vehicle's `tigrisModelKey` bytes at
-runtime and load them via glTFast's **runtime** API (`GltfImport`, distinct
-from the Editor-time import path glTFast also provides) rather than
-AssetBundles — glTF is a portable format glTFast can parse identically on any
-platform, so this avoids AssetBundles' per-`BuildTarget` build/upload
-duplication (Android and iOS would each need their own bundle). Not built yet,
-don't assume it exists.
+row, and `SelectedCarModelLoader`
+(`Assets/Scripts/Core/SelectedCarModelLoader.cs`, on the "ar man" GameObject
+in `AR Scene.unity`, alongside `ObjectPlacerController`) downloads the
+selected vehicle's model bytes at `Start()` and loads them via glTFast's
+**runtime** API (`GltfImport.LoadGltfBinary` +
+`InstantiateMainSceneAsync`, distinct from the Editor-time import path
+glTFast also provides) rather than AssetBundles — glTF is a portable format
+glTFast can parse identically on any platform, so this avoids AssetBundles'
+per-`BuildTarget` build/upload duplication. The instantiated model is parked
+at `y=-1000` and handed to `IARPlacementService.RaycastPrefab`, which
+`ObjectPlacerController` then instantiates at the AR tap point — replacing
+the old fixed `Cube.prefab` placeholder. Any failure along the way (no
+`tigrisModelKey` on the selected car, download error, glTF parse/instantiate
+error) falls back to whatever placeholder prefab was already assigned, never
+blocking placement outright. `ObjectPlacerController` no longer auto-starts
+placement in `Start()` — `SelectedCarModelLoader` calls `EnablePlacement()`
+once it knows what to place, so a tap can't land before the async swap
+finishes.
 
 **`AssetBundleTest.cs`** (same "asset manager" GameObject) is a manual dev/test
 script demonstrating the (now-abandoned) AssetBundle download pattern — it's

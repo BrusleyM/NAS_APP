@@ -19,6 +19,7 @@ namespace NAS.UI.Controllers
     {
         private const string ArSceneName = "AR Scene";
 
+        [SerializeField] private VisualTreeAsset _splashCardUxml;
         [SerializeField] private VisualTreeAsset _loginCardUxml;
         [SerializeField] private VisualTreeAsset _registerCardUxml;
         [SerializeField] private VisualTreeAsset _carSelectionCardUxml;
@@ -44,8 +45,25 @@ namespace NAS.UI.Controllers
 
             SetBackgroundImage(root);
             SubscribeToFlowEvents();
+        }
 
-            DecideInitialScreen();
+        // DecideInitialScreen() reads GameManager.Instance, which is set in
+        // GameManager's own Awake() - Unity doesn't guarantee Awake() order
+        // across different GameObjects, so calling this from OnEnable() (which
+        // has the same ordering risk as Awake()) can run before GameManager
+        // has set Instance, throwing a NullReferenceException. Start() is
+        // guaranteed to run only after every object's Awake() has, same fix
+        // AuthController already uses for the same reason.
+        private void Start()
+        {
+            // Splash is shown once per app session (GameManager.HasShownSplash),
+            // not on every "Main App" scene load - Back/Confirm from the AR scene
+            // both reload this scene, and re-showing the splash on every return
+            // trip would be annoying, not a "first thing the app shows" beat.
+            if (!GameManager.Instance.HasShownSplash)
+                ShowSplashCard();
+            else
+                DecideInitialScreen();
         }
 
         private void DecideInitialScreen()
@@ -72,37 +90,76 @@ namespace NAS.UI.Controllers
 
         private void SubscribeToFlowEvents()
         {
-            EventBus.Subscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Subscribe<SessionAuthenticatedEvent>(OnAuthSucceeded);
             EventBus.Subscribe<NavigateToRegisterRequestedEvent>(OnNavigateToRegister);
             EventBus.Subscribe<NavigateToLoginRequestedEvent>(OnNavigateToLogin);
-            EventBus.Subscribe<CarSelectedEvent>(OnCarSelected);
+            EventBus.Subscribe<SessionCarSelectedEvent>(OnCarSelected);
+            EventBus.Subscribe<SplashDismissedEvent>(OnSplashDismissed);
+            EventBus.Subscribe<ExitArRequestedEvent>(OnExitAr);
         }
 
         private void UnsubscribeFromFlowEvents()
         {
-            EventBus.Unsubscribe<AuthSucceededEvent>(OnAuthSucceeded);
+            EventBus.Unsubscribe<SessionAuthenticatedEvent>(OnAuthSucceeded);
             EventBus.Unsubscribe<NavigateToRegisterRequestedEvent>(OnNavigateToRegister);
             EventBus.Unsubscribe<NavigateToLoginRequestedEvent>(OnNavigateToLogin);
-            EventBus.Unsubscribe<CarSelectedEvent>(OnCarSelected);
+            EventBus.Unsubscribe<SessionCarSelectedEvent>(OnCarSelected);
+            EventBus.Unsubscribe<SplashDismissedEvent>(OnSplashDismissed);
+            EventBus.Unsubscribe<ExitArRequestedEvent>(OnExitAr);
         }
 
-        // NOTE on ordering: GameManager also subscribes to AuthSucceededEvent/CarSelectedEvent
-        // to update CurrentUser/SelectedCar. Because GameManager is a persistent singleton
-        // created before this screen exists, it subscribes first, so by the time these
-        // handlers run here, GameManager's session state is already up to date. If you ever
-        // reorder initialization, don't rely on that — read data straight off the event
-        // payload instead of back through GameManager.
-        private void OnAuthSucceeded(AuthSucceededEvent evt) => ShowCarSelectionScreen();
+        // Subscribed to GameManager's SessionAuthenticatedEvent/SessionCarSelectedEvent,
+        // not the raw AuthSucceededEvent/CarSelectedEvent - GameManager publishes these
+        // only after CurrentUser/AccessToken/SelectedCar are already set, so anything
+        // downstream of these handlers (e.g. CarSelectionScreenController reading
+        // GameManager.AccessToken) is guaranteed to see up-to-date state. See
+        // GameEvents.cs's doc comments on both event pairs for why this matters -
+        // subscribing to the raw events directly here caused a real bug.
+        private void OnAuthSucceeded(SessionAuthenticatedEvent evt) => ShowCarSelectionScreen();
         private void OnNavigateToRegister(NavigateToRegisterRequestedEvent evt) => ShowRegisterCard();
         private void OnNavigateToLogin(NavigateToLoginRequestedEvent evt) => ShowLoginCard();
-        // Loads the AR scene rather than showing a card here - unlike the other
-        // screens, the AR viewport is a real separate Unity scene (AR Scene.unity,
-        // with its own AR Foundation session/XR Origin), not another UI Toolkit
-        // card swapped into _cardContainer. ArViewportController (in that scene)
-        // owns the Back/Confirm buttons that bring the user back to this scene -
-        // see its comments for how DecideInitialScreen() picks the right card
-        // to show on return.
-        private void OnCarSelected(CarSelectedEvent evt) => SceneManager.LoadScene(ArSceneName);
+        // AR Scene is loaded additively exactly once per app session
+        // (GameManager.IsArSceneLoaded) and never reloaded after that -
+        // destroying and recreating ARSession/XROrigin via a full scene
+        // reload on every AR visit was causing a black camera feed on the
+        // second+ entry (not the documented AR Foundation lifecycle; see
+        // EnterArRequestedEvent/ExitArRequestedEvent's doc comments in
+        // GameEvents.cs). First visit loads the scene; every visit after
+        // that just hides this screen's own UI and tells the already-loaded
+        // AR scene to show itself again via EnterArRequestedEvent.
+        // ArViewportController owns the Back/Confirm buttons that publish
+        // ExitArRequestedEvent to bring the user back here - see OnExitAr().
+        private void OnCarSelected(SessionCarSelectedEvent evt)
+        {
+            HideUi();
+            if (!GameManager.Instance.IsArSceneLoaded)
+            {
+                GameManager.Instance.IsArSceneLoaded = true;
+                SceneManager.LoadScene(ArSceneName, LoadSceneMode.Additive);
+            }
+            else
+            {
+                EventBus.Publish(new EnterArRequestedEvent());
+            }
+        }
+
+        private void OnSplashDismissed(SplashDismissedEvent evt)
+        {
+            GameManager.Instance.HasShownSplash = true;
+            DecideInitialScreen();
+        }
+
+        // AR Scene is never unloaded (see OnCarSelected above), so this is
+        // the only way back to a Main App card after the first AR visit -
+        // Start() only ever runs once now, it won't fire again on return.
+        private void OnExitAr(ExitArRequestedEvent evt)
+        {
+            ShowUi();
+            DecideInitialScreen();
+        }
+
+        private void HideUi() => _uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        private void ShowUi() => _uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
 
         private void SetBackgroundImage(VisualElement root)
         {
@@ -115,6 +172,21 @@ namespace NAS.UI.Controllers
                 else
                     Debug.LogWarning($"Background image not found at: {_backgroundImagePath}");
             }
+        }
+
+        public void ShowSplashCard()
+        {
+            if (_splashCardUxml == null)
+            {
+                // No splash UXML assigned in the Inspector - fall back to the
+                // pre-splash behavior rather than showing a blank screen.
+                DecideInitialScreen();
+                return;
+            }
+            _cardContainer.Clear();
+            RemoveCardControllers();
+            _splashCardUxml.CloneTree(_cardContainer);
+            gameObject.AddComponent<SplashScreenController>();
         }
 
         public void ShowLoginCard()
@@ -156,6 +228,9 @@ namespace NAS.UI.Controllers
 
         private void RemoveCardControllers()
         {
+            var splashCtrl = GetComponent<SplashScreenController>();
+            if (splashCtrl != null) Destroy(splashCtrl);
+
             var loginCtrl = GetComponent<LoginCardController>();
             if (loginCtrl != null) Destroy(loginCtrl);
 

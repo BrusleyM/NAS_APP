@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NAS.Core.Models
@@ -34,5 +35,8 @@ namespace NAS.Core.Models
 
         [Tooltip("Tigris object key for this car's 3D model (.glb), downloaded and instantiated at runtime once AR placement starts. Null/empty falls back to the AR scene's default placeholder.")]
         public string tigrisModelKey;
+
+        [Tooltip("Exterior paint options for the AR Customize sheet's Paint category. Empty for hand-authored local fixtures.")]
+        public List<CarColorOption> exteriorColors = new List<CarColorOption>();
     }
 }
