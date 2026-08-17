@@ -1,0 +1,96 @@
+/* Splash screen — first thing ParentPageController shows, before
+   DecideInitialScreen() runs. Matches SplashScreen in mobile-designs.tsx:
+   centered "Neo" + glowing cyan "X" + "R" wordmark, "AR CAR SHOWROOM"
+   subtitle, a spinning ring + "Initializing AR sensors..." flavor text
+   (decorative only — not wired to any real loading progress), and a
+   "Get Started" button. The Figma reference advances via that button's
+   onClick, not a timer, so SplashScreenController mirrors that: tapping it
+   is what raises SplashDismissedEvent. */
+
+.splash-root {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    /* Solid background (not the blurred background-image other cards sit
+       over) to match the design's flat bg-[#121212] — deliberately covers
+       ParentPage's background-image while this card is shown. */
+    background-color: rgb(18, 18, 18);
+}
+
+.splash-content {
+    align-items: center;
+}
+
+.splash-title-row {
+    flex-direction: row;
+    align-items: baseline;
+    margin-bottom: 16px;
+}
+
+.splash-title {
+    font-size: 48px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(192, 192, 192);
+    -unity-text-align: middle-center;
+}
+
+/* The glowing cyan "X" in "NeoXR". text-shadow (not box-shadow) is what's
+   supported by this Unity version's UI Toolkit (see ArViewportScreen.uss's
+   box-shadow note in .claude/CLAUDE.md) - single shadow layer only, unlike
+   the design's stacked CSS text-shadow, but close enough for the glow. */
+.splash-title--accent {
+    color: rgb(0, 212, 255);
+    text-shadow: 0 0 16px rgba(0, 212, 255, 0.9);
+}
+
+.splash-subtitle {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgba(192, 192, 192, 0.7);
+    -unity-text-align: middle-center;
+}
+
+/* Rotated continuously by SplashScreenController.Update() - USS alone can't
+   loop an indefinite rotation without a keyframe/animation feature this UI
+   Toolkit version doesn't have, so the spin is driven from code instead. */
+.splash-spinner {
+    width: 48px;
+    height: 48px;
+    margin-top: 32px;
+    border-radius: 24px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-bottom-width: 4px;
+    border-top-width: 4px;
+    border-left-color: rgba(0, 212, 255, 0.3);
+    border-right-color: rgba(0, 212, 255, 0.3);
+    border-bottom-color: rgba(0, 212, 255, 0.3);
+    border-top-color: rgb(0, 212, 255);
+}
+
+.splash-loading-text {
+    margin-top: 16px;
+    font-size: 11px;
+    color: rgba(192, 192, 192, 0.5);
+    -unity-text-align: middle-center;
+}
+
+.splash-cta-button {
+    margin-top: 32px;
+    padding: 3% 10%;
+    background-color: rgba(0, 212, 255, 0.8);
+    border-width: 1px;
+    border-color: rgba(0, 212, 255, 0.5);
+    border-radius: 12px;
+    color: rgb(255, 255, 255);
+    font-size: 14px;
+    -unity-text-align: middle-center;
+    transition-duration: 0.2s;
+}
+
+.splash-cta-button:hover {
+    background-color: rgba(0, 150, 200, 0.9);
+}
