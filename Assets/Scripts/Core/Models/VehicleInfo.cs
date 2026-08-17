@@ -6,5 +6,6 @@ namespace NAS.Core.Models
         public int id;
         public string modelName;
         public float retailPrice;
+        public string tigrisModelKey;
     }
 }

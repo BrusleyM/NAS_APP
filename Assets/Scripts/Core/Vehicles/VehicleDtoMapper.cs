@@ -16,6 +16,7 @@ namespace NAS.Core.Vehicles
             car.type = dto.bodyType;
             car.category = dto.powertrain;
             car.imageUrl = dto.imageUrl;
+            car.tigrisModelKey = dto.tigrisModelKey;
             return car;
         }
     }

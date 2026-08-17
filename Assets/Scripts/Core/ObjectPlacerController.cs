@@ -37,10 +37,11 @@ namespace NAS.Core
             }
         }
 
-        private void Start()
-        {
-            EnablePlacement();
-        }
+        // No auto-start here on purpose - EnablePlacement() is called by
+        // SelectedCarModelLoader once it knows what to place (the downloaded
+        // car model, or the default placeholder on failure). Starting
+        // placement immediately in Start() risked a tap landing before that
+        // async swap finished, placing the stale placeholder instead.
 
         /// <summary>Call this to enable placement mode (e.g., from a UI button).</summary>
         public void EnablePlacement()

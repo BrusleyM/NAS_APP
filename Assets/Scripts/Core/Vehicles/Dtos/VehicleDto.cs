@@ -12,5 +12,6 @@ namespace NAS.Core.Vehicles.Dtos
         public string bodyType;
         public string powertrain;
         public string imageUrl;
+        public string tigrisModelKey;
     }
 }
