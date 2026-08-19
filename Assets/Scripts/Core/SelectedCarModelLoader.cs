@@ -73,71 +73,79 @@ namespace NAS.Core
                 _currentModelRoot = null;
             }
 
-            var selectedCar = GameManager.Instance != null ? GameManager.Instance.SelectedCar : null;
-            string modelKey = selectedCar != null ? selectedCar.tigrisModelKey : null;
-
-            if (string.IsNullOrEmpty(modelKey))
+            EventBus.Publish(new LoadingStartedEvent("Loading vehicle..."));
+            try
             {
-                Debug.LogWarning("SelectedCarModelLoader: no tigrisModelKey for the selected car - using the default placeholder.");
+                var selectedCar = GameManager.Instance != null ? GameManager.Instance.SelectedCar : null;
+                string modelKey = selectedCar != null ? selectedCar.tigrisModelKey : null;
+
+                if (string.IsNullOrEmpty(modelKey))
+                {
+                    Debug.LogWarning("SelectedCarModelLoader: no tigrisModelKey for the selected car - using the default placeholder.");
+                    _objectPlacer.EnablePlacement();
+                    return;
+                }
+
+                var downloadResult = await GameManager.Instance.DownloadModel(modelKey);
+                if (this == null) return; // AR Scene unloaded mid-download
+
+                if (!downloadResult.IsSuccess)
+                {
+                    Debug.LogWarning($"SelectedCarModelLoader: download failed for '{modelKey}': {downloadResult.ErrorMessage} - using the default placeholder.");
+                    _objectPlacer.EnablePlacement();
+                    return;
+                }
+
+                var gltf = new GltfImport();
+                bool loadOk = await gltf.LoadGltfBinary(downloadResult.Value);
+                if (this == null) return;
+
+                if (!loadOk)
+                {
+                    Debug.LogWarning($"SelectedCarModelLoader: glTF parse failed for '{modelKey}' - using the default placeholder.");
+                    _objectPlacer.EnablePlacement();
+                    return;
+                }
+
+                // Parked far below the scene AND kept inactive during the async
+                // build below - InstantiateMainSceneAsync needs the GameObject
+                // active while it runs, so it can't be deactivated up front. Once
+                // built, it's deactivated (see below) and reused directly as the
+                // placed instance on tap (ObjectPlacerController repositions +
+                // reactivates it rather than cloning it - see
+                // RaycastPrefabIsLiveInstance), so the -1000 position only matters
+                // for the brief window while it's still active and being built.
+                // modelKey contains '/' (e.g. "carmodels/bmwm5demo.glb") - GameObject.Find()
+                // and Transform.Find() both treat '/' as a hierarchy path separator, not a
+                // literal character, so a raw modelKey in the name breaks any future
+                // name-based lookup of this object. Sanitize it here instead.
+                var safeModelKey = modelKey.Replace('/', '_');
+                var modelRoot = new GameObject("SelectedCarModel_" + safeModelKey);
+                modelRoot.transform.position = new Vector3(0f, -1000f, 0f);
+                _currentModelRoot = modelRoot;
+
+                bool instantiateOk = await gltf.InstantiateMainSceneAsync(modelRoot.transform);
+                if (this == null) return;
+
+                if (!instantiateOk)
+                {
+                    Debug.LogWarning($"SelectedCarModelLoader: instantiate failed for '{modelKey}' - using the default placeholder.");
+                    Destroy(modelRoot);
+                    _currentModelRoot = null;
+                    _objectPlacer.EnablePlacement();
+                    return;
+                }
+
+                modelRoot.SetActive(false);
+                _placementService.RaycastPrefab = modelRoot;
+                _placementService.RaycastPrefabIsLiveInstance = true;
+                Debug.Log($"SelectedCarModelLoader: '{modelKey}' ready to place.");
                 _objectPlacer.EnablePlacement();
-                return;
             }
-
-            var downloadResult = await GameManager.Instance.DownloadModel(modelKey);
-            if (this == null) return; // AR Scene unloaded mid-download
-
-            if (!downloadResult.IsSuccess)
+            finally
             {
-                Debug.LogWarning($"SelectedCarModelLoader: download failed for '{modelKey}': {downloadResult.ErrorMessage} - using the default placeholder.");
-                _objectPlacer.EnablePlacement();
-                return;
+                EventBus.Publish(new LoadingFinishedEvent());
             }
-
-            var gltf = new GltfImport();
-            bool loadOk = await gltf.LoadGltfBinary(downloadResult.Value);
-            if (this == null) return;
-
-            if (!loadOk)
-            {
-                Debug.LogWarning($"SelectedCarModelLoader: glTF parse failed for '{modelKey}' - using the default placeholder.");
-                _objectPlacer.EnablePlacement();
-                return;
-            }
-
-            // Parked far below the scene AND kept inactive during the async
-            // build below - InstantiateMainSceneAsync needs the GameObject
-            // active while it runs, so it can't be deactivated up front. Once
-            // built, it's deactivated (see below) and reused directly as the
-            // placed instance on tap (ObjectPlacerController repositions +
-            // reactivates it rather than cloning it - see
-            // RaycastPrefabIsLiveInstance), so the -1000 position only matters
-            // for the brief window while it's still active and being built.
-            // modelKey contains '/' (e.g. "carmodels/bmwm5demo.glb") - GameObject.Find()
-            // and Transform.Find() both treat '/' as a hierarchy path separator, not a
-            // literal character, so a raw modelKey in the name breaks any future
-            // name-based lookup of this object. Sanitize it here instead.
-            var safeModelKey = modelKey.Replace('/', '_');
-            var modelRoot = new GameObject("SelectedCarModel_" + safeModelKey);
-            modelRoot.transform.position = new Vector3(0f, -1000f, 0f);
-            _currentModelRoot = modelRoot;
-
-            bool instantiateOk = await gltf.InstantiateMainSceneAsync(modelRoot.transform);
-            if (this == null) return;
-
-            if (!instantiateOk)
-            {
-                Debug.LogWarning($"SelectedCarModelLoader: instantiate failed for '{modelKey}' - using the default placeholder.");
-                Destroy(modelRoot);
-                _currentModelRoot = null;
-                _objectPlacer.EnablePlacement();
-                return;
-            }
-
-            modelRoot.SetActive(false);
-            _placementService.RaycastPrefab = modelRoot;
-            _placementService.RaycastPrefabIsLiveInstance = true;
-            Debug.Log($"SelectedCarModelLoader: '{modelKey}' ready to place.");
-            _objectPlacer.EnablePlacement();
         }
     }
 }

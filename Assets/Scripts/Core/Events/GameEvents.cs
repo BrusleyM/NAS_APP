@@ -179,4 +179,20 @@ namespace NAS.Core.Events
             MonthlyPayment = monthlyPayment;
         }
     }
+
+    // ---- Global loading overlay -------------------------------------------------------
+    // LoadingOverlayController lives on a child of the persistent Game Manager
+    // GameObject (DontDestroyOnLoad) - any async process anywhere in the app,
+    // regardless of which scene is currently loaded, can show/hide the same
+    // overlay by raising these instead of each scene needing its own loading UI.
+
+    /// <summary>Raised by an async process that should block interaction behind a loading overlay until it finishes.</summary>
+    public readonly struct LoadingStartedEvent
+    {
+        public readonly string Message;
+        public LoadingStartedEvent(string message = null) => Message = message;
+    }
+
+    /// <summary>Raised once the async process from a matching LoadingStartedEvent finishes (success or failure) to hide the overlay again.</summary>
+    public readonly struct LoadingFinishedEvent { }
 }

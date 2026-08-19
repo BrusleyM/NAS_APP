@@ -1,0 +1,7 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/LoadingOverlay.uss"/>
+    <ui:VisualElement name="loading-overlay-root" class="loading-overlay-root">
+        <ui:VisualElement name="loading-spinner" class="loading-spinner"/>
+        <ui:Label name="loading-message-label" text="Loading..." class="loading-message"/>
+    </ui:VisualElement>
+</ui:UXML>

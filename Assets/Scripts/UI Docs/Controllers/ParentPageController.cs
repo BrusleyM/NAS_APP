@@ -131,6 +131,16 @@ namespace NAS.UI.Controllers
         // ExitArRequestedEvent to bring the user back here - see OnExitAr().
         private void OnCarSelected(SessionCarSelectedEvent evt)
         {
+            // Published before HideUi()/the scene swap below, not after - the
+            // loading overlay lives on the persistent Game Manager and
+            // renders above any scene, so showing it first covers the gap
+            // between this screen's UI disappearing and the AR scene/camera
+            // actually being ready (previously a brief flash of the raw
+            // scene skybox). SelectedCarModelLoader fires its own
+            // LoadingStartedEvent moments later once it starts the actual
+            // download - harmless/idempotent, and its LoadingFinishedEvent
+            // is still the one that clears this.
+            EventBus.Publish(new LoadingStartedEvent("Entering AR..."));
             HideUi();
             if (!GameManager.Instance.IsArSceneLoaded)
             {
