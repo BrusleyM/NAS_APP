@@ -247,6 +247,21 @@ placement in `Start()` — `SelectedCarModelLoader` calls `EnablePlacement()`
 once it knows what to place, so a tap can't land before the async swap
 finishes.
 
+**TODO, not urgent — no clean retry after a failed model load.** When
+`LoadSelectedCarAsync()` hits any of the failure points above, it falls back
+to the placeholder prefab (currently still the old `Cube`, confirmed still
+assigned on `XR Origin`'s `ARRaycastManager.raycastPrefab`) for the rest of
+that AR session — there's no way to retry loading the actual selected car's
+model without leaving `AR Scene` and re-entering (which re-fires
+`EnterArRequestedEvent` and re-runs `LoadSelectedCarAsync()` from scratch).
+Deliberately not building this now — needs a real decision on UX first (a
+retry button on some kind of error state? auto-retry with backoff? how many
+attempts before giving up and just committing to the cube?), not just a
+code change. Revisit once that's decided; when it lands, make sure the retry
+path also cleans up `_currentModelRoot` the same way `LoadSelectedCarAsync()`
+already does at its top, so a retry after a partial `InstantiateMainSceneAsync`
+failure doesn't leak.
+
 **`AssetBundleTest.cs`** (same "asset manager" GameObject) is a manual dev/test
 script demonstrating the (now-abandoned) AssetBundle download pattern — it's
 currently disabled (`m_Enabled: 0` in `AR Scene.unity`) because its `Start()`

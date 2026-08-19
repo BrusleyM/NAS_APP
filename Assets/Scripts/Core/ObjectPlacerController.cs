@@ -160,16 +160,21 @@ namespace NAS.Core
                         // coroutine loop exits after the first success). The
                         // placeholder prefab fallback has no scene instance
                         // yet, so it still needs a real Instantiate().
+                        // Raycast hit's Y can drift slightly off the real floor -
+                        // pin it to 0 so the car sits on the ground instead of
+                        // floating/sinking; X/Z still come from the hit.
+                        Vector3 placementPosition = new Vector3(pose.position.x, 0f, pose.position.z);
+
                         GameObject placedInstance;
                         if (_placementService.RaycastPrefabIsLiveInstance)
                         {
                             placedInstance = prefab;
-                            placedInstance.transform.SetPositionAndRotation(pose.position, pose.rotation);
+                            placedInstance.transform.SetPositionAndRotation(placementPosition, pose.rotation);
                             placedInstance.SetActive(true);
                         }
                         else
                         {
-                            placedInstance = Instantiate(prefab, pose.position, pose.rotation);
+                            placedInstance = Instantiate(prefab, placementPosition, pose.rotation);
                         }
                         EventBus.Publish(new CarPlacedEvent(placedInstance));
 
