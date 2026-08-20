@@ -97,7 +97,7 @@ namespace NAS.Core
                 }
 
                 var gltf = new GltfImport();
-                bool loadOk = await gltf.LoadGltfBinary(downloadResult.Value);
+                bool loadOk = await gltf.Load(downloadResult.Value);
                 if (this == null) return;
 
                 if (!loadOk)

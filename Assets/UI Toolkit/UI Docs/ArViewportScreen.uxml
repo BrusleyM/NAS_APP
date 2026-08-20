@@ -26,7 +26,7 @@
 
         <ui:VisualElement name="settings-button-row" class="settings-button-row" picking-mode="Ignore">
             <ui:Button name="settings-button" class="settings-button">
-                <ui:Label text="&#9881;" class="settings-icon" />
+                <ui:VisualElement name="settings-icon" class="settings-icon" />
             </ui:Button>
         </ui:VisualElement>
 
@@ -45,7 +45,7 @@
                     <ui:Label text="Wheel" class="category-label" />
                 </ui:Button>
                 <ui:Button name="category-paint" class="category-button">
-                    <ui:Label text="&#127912;" class="category-icon" />
+                    <ui:VisualElement name="category-paint-icon" class="category-icon-image" />
                     <ui:Label text="Paint" class="category-label" />
                 </ui:Button>
                 <ui:Button name="category-trims" class="category-button">

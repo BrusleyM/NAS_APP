@@ -16,9 +16,11 @@ namespace NAS.Core
         [SerializeField] private MonoBehaviour _placementServiceBehaviour; // Must implement IARPlacementService
         [SerializeField] private ARPlaneManager _planeManager; // Optional: for plane visibility control
         [SerializeField] private ARSession _arSession; // Disabled/re-enabled (not destroyed) across AR entry/exit - see OnEnterAr/OnExitAr
+        [SerializeField] private ARAnchorManager _anchorManager; // Anchors the placed car to the hit plane so it doesn't drift when tracking is corrected - see TryPlaceObject
 
         [Header("Settings")]
         [SerializeField] private bool _preventMultiplePerPlane = true; // Enable/disable plane tracking
+        [SerializeField] private float _minDistanceFromUser = 1f; // Placement point is pushed out to at least this far from the camera, so the car never spawns on top of the user
 
         private IInputProvider _inputProvider;
         private IARPlacementService _placementService;
@@ -165,17 +167,65 @@ namespace NAS.Core
                         // floating/sinking; X/Z still come from the hit.
                         Vector3 placementPosition = new Vector3(pose.position.x, 0f, pose.position.z);
 
+                        // Tapping close to your own feet would spawn the car
+                        // (and its origin) right on top of you - push the
+                        // placement point out to at least _minDistanceFromUser
+                        // along the same direction from the camera, so it
+                        // never starts overlapping the user.
+                        if (Camera.main != null)
+                        {
+                            Vector3 camPos = Camera.main.transform.position;
+                            Vector3 fromCamera = new Vector3(placementPosition.x - camPos.x, 0f, placementPosition.z - camPos.z);
+                            float distance = fromCamera.magnitude;
+                            if (distance < _minDistanceFromUser)
+                            {
+                                Vector3 direction = distance > 0.001f
+                                    ? fromCamera / distance
+                                    : new Vector3(Camera.main.transform.forward.x, 0f, Camera.main.transform.forward.z).normalized; // camera exactly on the point - fall back to where it's facing
+                                placementPosition = new Vector3(camPos.x + direction.x * _minDistanceFromUser, 0f, camPos.z + direction.z * _minDistanceFromUser);
+                            }
+                        }
+
+                        ARPlane hitPlane = _planeManager != null ? _planeManager.GetPlane(planeId) : null;
+
+                        // Attach the car to an ARAnchor pinned to the hit
+                        // plane instead of just setting a raw world-space
+                        // Transform - without this, a brief tracking-quality
+                        // drop (a freeze) followed by AR Foundation
+                        // correcting the session's coordinate frame visibly
+                        // drags an unanchored object along with the
+                        // correction ("car follows the camera, shifted from
+                        // where it was placed"). An anchored object gets that
+                        // same correction applied to its transform, so it
+                        // stays pinned to its real-world point instead.
+                        Pose anchoredPose = new Pose(placementPosition, pose.rotation);
+                        ARAnchor anchor = (_anchorManager != null && hitPlane != null)
+                            ? _anchorManager.AttachAnchor(hitPlane, anchoredPose)
+                            : null;
+
                         GameObject placedInstance;
                         if (_placementService.RaycastPrefabIsLiveInstance)
                         {
                             placedInstance = prefab;
-                            placedInstance.transform.SetPositionAndRotation(placementPosition, pose.rotation);
                             placedInstance.SetActive(true);
                         }
                         else
                         {
-                            placedInstance = Instantiate(prefab, placementPosition, pose.rotation);
+                            placedInstance = Instantiate(prefab);
                         }
+
+                        if (anchor != null)
+                        {
+                            placedInstance.transform.SetParent(anchor.transform, worldPositionStays: false);
+                            placedInstance.transform.localPosition = Vector3.zero;
+                            placedInstance.transform.localRotation = Quaternion.identity;
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Could not create an ARAnchor for this placement - car will not be corrected for tracking drift.");
+                            placedInstance.transform.SetPositionAndRotation(anchoredPose.position, anchoredPose.rotation);
+                        }
+
                         EventBus.Publish(new CarPlacedEvent(placedInstance));
 
                         if (_preventMultiplePerPlane)
@@ -184,7 +234,6 @@ namespace NAS.Core
                         // Optional: hide other planes
                         if (_planeManager != null)
                         {
-                            ARPlane hitPlane = _planeManager.GetPlane(planeId);
                             if (hitPlane != null)
                             {
                                 foreach (var plane in _planeManager.trackables)

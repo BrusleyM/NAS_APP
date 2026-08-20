@@ -20,14 +20,14 @@ namespace NAS.Core
         private void OnEnable()
         {
             if (_planeManager != null)
-                _planeManager.planesChanged += OnPlanesChanged;
+                _planeManager.trackablesChanged.AddListener(OnPlanesChanged);
             EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
         }
 
         private void OnDisable()
         {
             if (_planeManager != null)
-                _planeManager.planesChanged -= OnPlanesChanged;
+                _planeManager.trackablesChanged.RemoveListener(OnPlanesChanged);
             EventBus.Unsubscribe<EnterArRequestedEvent>(OnEnterAr);
         }
 
@@ -38,7 +38,7 @@ namespace NAS.Core
         // the previous session.
         private void OnEnterAr(EnterArRequestedEvent evt) => _primaryPlaneId = TrackableId.invalidId;
 
-        private void OnPlanesChanged(ARPlanesChangedEventArgs args)
+        private void OnPlanesChanged(ARTrackablesChangedEventArgs<ARPlane> args)
         {
             foreach (var plane in args.added)
             {
@@ -47,9 +47,13 @@ namespace NAS.Core
                 else if (plane.trackableId != _primaryPlaneId)
                     plane.gameObject.SetActive(false);
             }
-            foreach (var plane in args.removed)
+            // args.removed pairs the id with the (possibly already-destroyed)
+            // ARPlane, unlike added/updated - the plane component may no
+            // longer be safely usable by the time removal is reported, so
+            // only the id is read here.
+            foreach (var removedPlane in args.removed)
             {
-                if (plane.trackableId == _primaryPlaneId)
+                if (removedPlane.Key == _primaryPlaneId)
                 {
                     _primaryPlaneId = TrackableId.invalidId;
                     break;

@@ -111,9 +111,11 @@
 }
 
 .settings-icon {
-    color: rgb(0, 212, 255);
-    font-size: 24px;
-    -unity-text-align: middle-center;
+    width: 24px;
+    height: 24px;
+    background-image: url("project://database/Assets/Textures/icons/gear.svg");
+    -unity-background-image-tint-color: rgb(0, 212, 255);
+    -unity-background-scale-mode: scale-to-fit;
 }
 
 .sheet-backdrop {
@@ -216,6 +218,24 @@
 
 .category-button--active .category-icon {
     color: rgb(0, 212, 255);
+}
+
+/* Image-based icon variant for categories with a real SVG asset (currently
+   just Paint) - the rest still use .category-icon's Unicode-glyph Label
+   until they get their own icons. Same sizing/margin convention as
+   .category-icon, tinted instead of colored since this is a background-image
+   VisualElement, not a Label. */
+.category-icon-image {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 6px;
+    background-image: url("project://database/Assets/Textures/icons/paint-brush.svg");
+    -unity-background-image-tint-color: rgb(192, 192, 192);
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.category-button--active .category-icon-image {
+    -unity-background-image-tint-color: rgb(0, 212, 255);
 }
 
 .category-label {
