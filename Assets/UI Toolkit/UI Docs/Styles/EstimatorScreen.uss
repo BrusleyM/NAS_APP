@@ -1,25 +1,35 @@
-.glass-card {
-    background-color: rgba(255, 255, 255, 0);
-    border-radius: 24px;
-    border-width: 1px;
-    border-color: rgba(192, 192, 192, 0);
-    -unity-background-blur: 20px;
-    width: 100%;
-    max-width: 700px;
-    flex-direction: column;
-    padding-bottom: 8%;
-    padding-top: 6%;
-    padding-right: 4%;
-    padding-left: 4%;
-}
-
-.estimator-scroll {
-    max-height: 90%;
+/* Root follows the same hosting pattern as CarSelectionScreen's
+   .car-selection-root / LoginScreen's .login-card being placed inside
+   ParentPageController's "center-container" (see ParentPage.uss -
+   flex-grow:1, justify-content:center, align-items:center). A card that
+   doesn't set flex-grow:1 (main axis) and width:100% (cross axis) on its
+   own root only ever gets sized to its content and centered with leftover
+   space around it - CarSelectionScreen avoids that by giving its root both.
+   Previously this root also carried a translucent/blurred "glass-card" look
+   (background blur, border, rounded corners, max-width:700px) that made it
+   read as a floating card rather than a full screen like CarSelection/AR
+   Viewport - dropped in favor of a full-bleed root, matching the new
+   mobile-designs.tsx EstimatorScreen's actual container: `w-full h-full
+   flex flex-col bg-[#0e0e0e]` - solid, not transparent. The inner boxes'
+   low-opacity blue fills (info-box, financed-value, payment-box - see
+   below) are correct as-is straight from that same source; they only read
+   as "washed out"/see-through when the root itself has no solid backing,
+   letting ParentPage's own background-image bleed through underneath them.
+   Same reasoning as SplashScreen.uss's solid rgb(18,18,18) root. */
+.estimator-root {
     flex-grow: 1;
-    flex-shrink: 1;
+    width: 100%;
+    background-color: rgb(14, 14, 14);
+    flex-direction: column;
+    padding: 6% 5% 4% 5%;
 }
 
-.card-title {
+.header {
+    align-items: center;
+    margin-bottom: 5%;
+}
+
+.title {
     font-size: 20px;
     -unity-text-align: middle-center;
     margin-bottom: 2%;
@@ -27,11 +37,24 @@
     -unity-font-style: bold;
 }
 
-.vehicle-info {
+.subtitle {
     font-size: 12px;
     -unity-text-align: middle-center;
-    margin-bottom: 6%;
-    color: rgb(0, 212, 255);
+    color: rgba(192, 192, 192, 0.6);
+}
+
+/* estimator-scroll no longer needs a percentage max-height hack - that was
+   only ever needed because the old .glass-card root had no real resolved
+   height for a percentage to resolve against (auto/hug-content). Now that
+   .estimator-root fills real space via flex-grow:1 all the way up to
+   ParentPage's center-container, flex-grow:1/flex-shrink:1 alone correctly
+   bounds the ScrollView within whatever space is left after the header,
+   retail-price strip and the Send to Dealer button (now a sibling outside
+   the scroll, not the scroll's last child - see EstimatorCard.uxml). */
+.estimator-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-bottom: 3%;
 }
 
 .info-box {
@@ -40,7 +63,7 @@
     border-color: rgba(0, 212, 255, 0.2);
     border-radius: 12px;
     padding: 4%;
-    margin-bottom: 6%;
+    margin-bottom: 5%;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
@@ -92,33 +115,32 @@
     width: 100%;
 }
 
+/* Colors match the neutral input styling other screens already use for
+   this kind of secondary control - CarSelectionScreen's .dropdown-button /
+   .search-container (rgba(255,255,255,0.05) fill, rgba(192,192,192,0.2)
+   border) - and match mobile-designs.tsx's EstimatorScreen input styling
+   exactly, so this was a case of the two sources agreeing rather than
+   conflicting. */
 .input-field .unity-text-field__input {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
     border-width: 1px;
-    border-color: rgba(192, 192, 192, 0.3);
+    border-color: rgba(192, 192, 192, 0.2);
     border-radius: 12px;
-    padding: 3% 4%;
+    padding: 0 4%;
     color: rgb(192, 192, 192);
     font-size: 14px;
     transition-property: border-color;
     transition-duration: 0.2s;
+    height: 42px; /* Matches LoginScreen's .input-field height - percentage
+                     padding alone (the old rule) resolves against this
+                     field's much narrower 48%-width column, producing a
+                     visibly thinner field than every other screen's inputs. */
 }
 
 .input-field .unity-text-field__input:focus {
     border-color: rgb(0, 212, 255);
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-/*.currency-field .unity-text-field__input,
-.term-field .unity-text-field__input {
     background-color: rgba(255, 255, 255, 0.1);
-    border-width: 1px;
-    border-color: rgba(192, 192, 192, 0.3);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: rgb(192, 192, 192);
-    font-size: 14px;
-}*/
+}
 
 .inline-suffix {
     font-size: 12px;
@@ -129,7 +151,9 @@
 .highlight .financed-value {
     font-size: 16px;
     color: rgb(0, 212, 255);
-    background-color: rgba(0, 212, 255, 0.1);
+    background-color: rgba(0, 212, 255, 0.06);
+    border-width: 1px;
+    border-color: rgba(0, 212, 255, 0.2);
     border-radius: 8px;
     padding: 8px 12px;
     -unity-text-align: middle-center;
@@ -151,26 +175,74 @@
     color: rgb(0, 212, 255);
 }
 
+/* The class names this used before (.unity-slider__track, .unity-dragger)
+   don't exist on this Unity version's Slider - its actual internal
+   hierarchy (confirmed by querying a live Slider instance) is
+   .unity-base-slider__drag-container > [.unity-base-slider__tracker,
+   .unity-base-slider__dragger-border, .unity-base-slider__dragger], BEM-
+   style, not the older short aliases. None of the rules below were ever
+   applying - what showed on-screen was Unity's completely unstyled default
+   slider look. */
 .custom-slider {
     margin: 2% 0;
 }
 
-.custom-slider .unity-slider__track {
-    background-color: rgba(192, 192, 192, 0.2);
+.custom-slider .unity-base-slider__tracker {
+    background-color: rgba(192, 192, 192, 0.15);
     border-radius: 4px;
-    height: 4px;
+    border-width: 0;
+    height: 6px;
 }
 
-.custom-slider .unity-dragger {
+/* Value-based color fill up to the current position (matching the design's
+   `linear-gradient(to right, COLOR X%, track-color X%)`, which UI Toolkit's
+   USS can't express directly since it has no gradient background support -
+   done instead as a separate absolutely-positioned VisualElement
+   (EstimatorCardController creates it and resizes it on every value change)
+   inserted as a sibling right after the tracker, so it paints over the
+   tracker but still sits behind the dragger/dragger-border below it. */
+.slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 4px;
+    background-color: rgb(0, 212, 255);
+}
+
+.custom-slider--balloon .slider-fill {
+    background-color: rgb(255, 215, 0);
+}
+
+/* unity-base-slider__dragger-border is Unity's default theme's own decorative
+   ring element, but it resolves to a 0x0 box in this project regardless of
+   width/border-width set on it here - border-radius alone takes (confirmed:
+   50% applied), but a border can't render meaningfully around a zero-sized
+   box. Putting the border directly on the dragger circle itself instead,
+   which is already reliably sized (18x18, confirmed working). */
+.custom-slider .unity-base-slider__dragger {
     background-color: rgb(0, 212, 255);
     border-radius: 50%;
     width: 18px;
     height: 18px;
-    border-width: 0;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+    /* text-shadow is the only glow USS supports here (see .payment-value's
+       comment above) - it paints on text, not backgrounds, so it doesn't
+       apply to this element; this border is this control's stand-in for
+       the design's box-shadow glow ring. */
 }
 
-.custom-slider .unity-dragger:hover {
+.custom-slider .unity-base-slider__dragger:hover {
     background-color: rgba(0, 212, 255, 0.8);
+}
+
+.custom-slider--balloon .unity-base-slider__dragger {
+    background-color: rgb(255, 215, 0);
+}
+
+.custom-slider--balloon .unity-base-slider__dragger:hover {
+    background-color: rgba(255, 215, 0, 0.8);
 }
 
 .slider-range-labels {
@@ -193,68 +265,62 @@
 }
 
 .payment-box {
-    background-color: rgba(0, 212, 255, 0.1);
+    background-color: rgba(0, 212, 255, 0.09);
     border-width: 1px;
-    border-color: rgba(0, 212, 255, 0.3);
-    border-radius: 16px;
-    padding: 5%;
-    margin: 6% 0;
+    border-color: rgba(0, 212, 255, 0.25);
+    border-radius: 12px;
+    padding: 5% 5% 6% 5%;
+    margin: 0;
     flex-direction: column;
     align-items: center;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    border-bottom-right-radius: 15px;
-    border-bottom-left-radius: 15px;
-    margin-bottom: 0%;
-    margin-top: 0%;
-    margin-right: 0%;
-    margin-left: 0%;
-    padding-top: 0%;
-    padding-right: 0%;
-    padding-left: 0%;
-    flex-grow: 1;
-    flex-shrink: 1;
-    padding-bottom: 13%;
 }
 
 .payment-label {
     font-size: 12px;
     color: rgba(192, 192, 192, 0.8);
     margin-bottom: 2%;
-    -unity-text-align: middle-left;
+    -unity-text-align: middle-center;
 }
 
+/* mobile-designs.tsx specifies "font-light" (a lighter weight) for this
+   number - Unity's -unity-font-style only offers normal/bold/italic
+   combinations (no intermediate weight without a dedicated light font
+   asset), so normal is the closest available match; previously this was
+   bold, which read heavier than the design intends. text-shadow is used
+   for the glow the design applies via box-shadow on the whole payment box
+   (unsupported in this UI Toolkit version - see SplashScreen.uss's
+   glowing-"X" wordmark for the same workaround already used in this
+   project) - applied to the number itself rather than the box, since
+   text-shadow only paints on text. */
 .payment-value {
     font-size: 32px;
     color: rgb(0, 212, 255);
-    -unity-font-style: bold;
-    margin-right: 0;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
-    margin-top: 0;
-    margin-bottom: 0;
-    margin-left: 0;
-    -unity-text-align: middle-left;
+    -unity-font-style: normal;
+    text-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-center;
+}
+
+.balloon-container {
+    margin-top: 3%;
+    padding-top: 3%;
+    border-top-width: 1px;
+    border-top-color: rgba(255, 215, 0, 0.2);
+    width: 84%;
 }
 
 .balloon-info {
     font-size: 11px;
     color: rgba(255, 215, 0, 0.9);
-    margin-top: 0%;
-    border-top-width: 1px;
-    border-top-color: rgba(255, 215, 0, 0.2);
-    padding-top: 0%;
-    -unity-text-align: middle-left;
-    margin-right: 0%;
-    margin-bottom: 0%;
-    margin-left: 0%;
-    padding-right: 0%;
-    padding-bottom: 0%;
-    padding-left: 0%;
+    -unity-text-align: middle-center;
+    margin: 0;
+    padding: 0;
 }
 
+/* text-shadow glow on the button label approximates the design's
+   box-shadow glow around the whole button - same box-shadow-unavailable
+   workaround as .payment-value above. */
 .gradient-button {
     background-color: rgba(0, 212, 255, 0.8);
     border-width: 1px;
@@ -264,7 +330,9 @@
     color: white;
     font-size: 14px;
     -unity-text-align: middle-center;
-    margin: 4% 0;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    margin: 0;
+    flex-shrink: 0;
     transition-property: background-color;
     transition-duration: 0.2s;
 }
@@ -278,6 +346,7 @@
     color: rgba(192, 192, 192, 0.5);
     -unity-text-align: middle-center;
     margin-top: 2%;
+    padding-bottom: 2%;
     white-space: pre-wrap;
 }
 

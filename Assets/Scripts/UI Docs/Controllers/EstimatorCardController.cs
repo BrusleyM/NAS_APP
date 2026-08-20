@@ -10,6 +10,7 @@ namespace NAS.UI.Controllers
 {
     public class EstimatorCardController : MonoBehaviour
     {
+        [SerializeField] private Label _vehicleInfoLabel;
         [SerializeField] private Label _retailPriceLabel;
         [SerializeField] private TextField _depositField;
         [SerializeField] private TextField _tradeInField;
@@ -26,6 +27,14 @@ namespace NAS.UI.Controllers
         [SerializeField] private Button _sendButton;
         [SerializeField] private VisualElement _balloonContainer;
 
+        // Value-based fill bars for the two sliders - UI Toolkit's Slider
+        // has no built-in "filled portion" and USS here has no gradient
+        // background support, so this is a plain VisualElement inserted
+        // into the slider's internal drag-container and resized on every
+        // value change (see CreateSliderFill/UpdateSliderFill below).
+        private VisualElement _interestSliderFill;
+        private VisualElement _balloonSliderFill;
+
         private VehicleInfo _vehicle;
         private ILoanCalculator _loanCalculator;
         
@@ -40,7 +49,7 @@ namespace NAS.UI.Controllers
             _loanCalculator = new LoanCalculator();
             
             // Use selected car from GameManager if available, otherwise fallback to default
-            if (GameManager.Instance.SelectedCar != null)
+            if (GameManager.Instance != null && GameManager.Instance.SelectedCar != null)
             {
                 _vehicle = GameManager.Instance.SelectedCar;
             }
@@ -64,6 +73,7 @@ namespace NAS.UI.Controllers
 
             var root = uiDocument.rootVisualElement;
             
+            if (_vehicleInfoLabel == null) _vehicleInfoLabel = root.Q<Label>("vehicle-info");
             if (_retailPriceLabel == null) _retailPriceLabel = root.Q<Label>("retail-price");
             if (_depositField == null) _depositField = root.Q<TextField>("deposit-field");
             if (_tradeInField == null) _tradeInField = root.Q<TextField>("tradein-field");
@@ -80,7 +90,12 @@ namespace NAS.UI.Controllers
             if (_sendButton == null) _sendButton = root.Q<Button>("send-button");
             if (_balloonContainer == null) _balloonContainer = root.Q<VisualElement>("balloon-info-container");
 
-            // Display retail price using the selected car's price
+            // Display the selected car's name/price - previously the header
+            // label was a hardcoded "Tesla Model S · Performance Trim" string
+            // in the UXML even when a real selected car came through
+            // GameManager; retail price already used the real value, this
+            // brings the vehicle-info label in line with it.
+            if (_vehicleInfoLabel != null) _vehicleInfoLabel.text = _vehicle.modelName;
             _retailPriceLabel.text = $"R{_vehicle.retailPrice:N0}";
             
             _depositField.value = $"{_deposit}";
@@ -88,7 +103,12 @@ namespace NAS.UI.Controllers
             _loanTermField.value = $"{_loanTerm}";
             _interestSlider.value = _interestRate;
             _balloonSlider.value = _balloonPercent;
-            
+
+            _interestSliderFill = CreateSliderFill(_interestSlider);
+            _balloonSliderFill = CreateSliderFill(_balloonSlider);
+            UpdateSliderFill(_interestSlider, _interestSliderFill);
+            UpdateSliderFill(_balloonSlider, _balloonSliderFill);
+
             _depositField.RegisterValueChangedCallback(evt =>
             {
                 var sanitized = SanitizeFloatInput(evt.newValue);
@@ -122,23 +142,49 @@ namespace NAS.UI.Controllers
                     UpdateAll();
                 }
             });
-            _interestSlider.RegisterValueChangedCallback(evt => 
-            { 
-                _interestRate = ValidateInterestRate(evt.newValue); 
-                if (Mathf.Abs(_interestSlider.value - _interestRate) > 0.01f) 
+            _interestSlider.RegisterValueChangedCallback(evt =>
+            {
+                _interestRate = ValidateInterestRate(evt.newValue);
+                if (Mathf.Abs(_interestSlider.value - _interestRate) > 0.01f)
                     _interestSlider.SetValueWithoutNotify(_interestRate);
-                UpdateAll(); 
+                UpdateSliderFill(_interestSlider, _interestSliderFill);
+                UpdateAll();
             });
-            _balloonSlider.RegisterValueChangedCallback(evt => 
-            { 
-                _balloonPercent = ValidateBalloonPercent(evt.newValue); 
-                if (Mathf.Abs(_balloonSlider.value - _balloonPercent) > 0.01f) 
+            _balloonSlider.RegisterValueChangedCallback(evt =>
+            {
+                _balloonPercent = ValidateBalloonPercent(evt.newValue);
+                if (Mathf.Abs(_balloonSlider.value - _balloonPercent) > 0.01f)
                     _balloonSlider.SetValueWithoutNotify(_balloonPercent);
-                UpdateAll(); 
+                UpdateSliderFill(_balloonSlider, _balloonSliderFill);
+                UpdateAll();
             });
             
             _sendButton.clicked += OnSendToDealer;
             UpdateAll();
+        }
+
+        // Inserts a plain VisualElement (styled via the "slider-fill" USS
+        // class) right after the slider's internal tracker, so it paints
+        // over the flat track but still sits behind the dragger/dragger-
+        // border (which come after it in the drag-container's child order).
+        private VisualElement CreateSliderFill(Slider slider)
+        {
+            var dragContainer = slider.Q(className: "unity-base-slider__drag-container");
+            var tracker = slider.Q(className: "unity-base-slider__tracker");
+            if (dragContainer == null || tracker == null) return null;
+
+            var fill = new VisualElement { pickingMode = PickingMode.Ignore };
+            fill.AddToClassList("slider-fill");
+            dragContainer.Insert(dragContainer.IndexOf(tracker) + 1, fill);
+            return fill;
+        }
+
+        private void UpdateSliderFill(Slider slider, VisualElement fill)
+        {
+            if (fill == null) return;
+            float range = slider.highValue - slider.lowValue;
+            float percent = range > 0f ? (slider.value - slider.lowValue) / range * 100f : 0f;
+            fill.style.width = new Length(percent, LengthUnit.Percent);
         }
 
         private float ValidateDeposit(float value) => Mathf.Clamp(value, 0, _vehicle.retailPrice);

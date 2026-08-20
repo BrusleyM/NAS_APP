@@ -1,8 +1,10 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/EstimatorScreen.uss?fileID=7433441132597879392&amp;guid=847bf084478f94ebb8424eb3d21000e4&amp;type=3#EstimatorScreen"/>
-    <ui:VisualElement name="estimator-card" class="glass-card">
-        <ui:Label text="Affordability Estimator" class="card-title"/>
-        <ui:Label text="Tesla Model S · Performance Trim" class="vehicle-info"/>
+    <ui:VisualElement name="estimator-root" class="estimator-root">
+        <ui:VisualElement name="header-section" class="header">
+            <ui:Label text="Affordability Estimator" class="title"/>
+            <ui:Label name="vehicle-info" text="Tesla Model S · Performance Trim" class="subtitle"/>
+        </ui:VisualElement>
         <ui:VisualElement class="info-box">
             <ui:Label text="Retail Price" class="info-label"/>
             <ui:Label name="retail-price" text="$75,000" class="info-value"/>
@@ -43,7 +45,7 @@
                     <ui:Label text="Balloon Payment" class="field-label"/>
                     <ui:Label name="balloon-percent-value" text="0%" class="slider-value"/>
                 </ui:VisualElement>
-                <ui:Slider name="balloon-slider" low-value="0" high-value="50" value="0" class="custom-slider"/>
+                <ui:Slider name="balloon-slider" low-value="0" high-value="50" value="0" class="custom-slider custom-slider--balloon"/>
                 <ui:VisualElement class="slider-range-labels">
                     <ui:Label text="0%" class="range-min"/>
                     <ui:Label text="50%" class="range-max"/>
@@ -53,12 +55,12 @@
             <ui:VisualElement class="payment-box">
                 <ui:Label text="Estimated Monthly Payment" class="payment-label"/>
                 <ui:Label name="monthly-payment" text="$1140" class="payment-value"/>
+                <ui:VisualElement name="balloon-info-container" class="balloon-container">
+                    <ui:Label name="balloon-info" class="balloon-info"/>
+                </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement name="balloon-info-container" class="balloon-container" style="justify-content: flex-start; align-items: center; padding-top: 2%; padding-bottom: 2%;">
-                <ui:Label name="balloon-info" class="balloon-info"/>
-            </ui:VisualElement>
-            <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
             <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." name="loan_interest_info" class="footnote"/>
         </ui:ScrollView>
+        <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
     </ui:VisualElement>
 </ui:UXML>
