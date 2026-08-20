@@ -20,7 +20,10 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Label name="login-error-label" class="form-error" style="display: none;"/>
-        <ui:Button name="login-button" text="Login" class="gradient-button" style="margin-top: 8px;" />
+        <ui:Button name="login-button" class="gradient-button" style="margin-top: 8px;">
+            <ui:Label text="Login" name="login-button-label" class="gradient-button-label"/>
+            <ui:VisualElement name="login-button-spinner" class="button-spinner" style="display: none;"/>
+        </ui:Button>
         <ui:Label name="register-link-label" text="Don&apos;t have an account? &lt;link=&quot;register&quot;&gt;&lt;color=#00D4FF&gt;Register here&lt;/color&gt;&lt;/link&gt;" enable-rich-text="true" class="rich-text-link"/>
     </ui:VisualElement>
 </ui:UXML>

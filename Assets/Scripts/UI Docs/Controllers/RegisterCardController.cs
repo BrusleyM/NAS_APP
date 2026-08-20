@@ -11,6 +11,8 @@ namespace NAS.UI.Controllers
     /// </summary>
     public class RegisterCardController : MonoBehaviour
     {
+        private const float SpinDegreesPerSecond = 220f; // Matches LoadingOverlayController's spinner speed
+
         [SerializeField] private TextField _firstNameField;
         [SerializeField] private TextField _lastNameField;
         [SerializeField] private TextField _cellNumberField;
@@ -18,6 +20,8 @@ namespace NAS.UI.Controllers
         [SerializeField] private TextField _passwordField;
         [SerializeField] private TextField _confirmPasswordField;
         [SerializeField] private Button _registerButton;
+        [SerializeField] private Label _registerButtonLabel;
+        [SerializeField] private VisualElement _registerButtonSpinner;
         [SerializeField] private Label _richTextLabel;
         [SerializeField] private Label _errorLabel; // general/backend-level error, "register-error-label"
 
@@ -30,6 +34,9 @@ namespace NAS.UI.Controllers
 
         [SerializeField] private Button _passwordToggleButton;
         [SerializeField] private Button _confirmPasswordToggleButton;
+
+        private float _spinAngle;
+        private bool _isSubmitting;
 
         private void OnEnable()
         {
@@ -45,6 +52,8 @@ namespace NAS.UI.Controllers
             _passwordField = root.Q<TextField>("password-field");
             _confirmPasswordField = root.Q<TextField>("confirm-password-field");
             _registerButton = root.Q<Button>("register-button");
+            _registerButtonLabel = root.Q<Label>("register-button-label");
+            _registerButtonSpinner = root.Q<VisualElement>("register-button-spinner");
             _richTextLabel = root.Q<Label>("login-link-label");
             _errorLabel = root.Q<Label>("register-error-label");
 
@@ -85,7 +94,9 @@ namespace NAS.UI.Controllers
 
         private void OnRegisterClicked()
         {
+            if (_isSubmitting) return; // Button is disabled while submitting, but guard anyway
             ClearAllErrors();
+            SetSubmitting(true);
             EventBus.Publish(new RegisterRequestedEvent(
                 _firstNameField?.value,
                 _lastNameField?.value,
@@ -93,6 +104,26 @@ namespace NAS.UI.Controllers
                 _emailField?.value,
                 _passwordField?.value,
                 _confirmPasswordField?.value));
+        }
+
+        // No explicit "success" handler needed here - on success this whole
+        // card gets destroyed by ParentPageController's navigation (see
+        // SessionAuthenticatedEvent in GameEvents.cs), so there's nothing to
+        // revert the button back to. Only the failure path needs to turn the
+        // spinner back off, since the form stays up for the user to retry.
+        private void SetSubmitting(bool submitting)
+        {
+            _isSubmitting = submitting;
+            if (_registerButton != null) _registerButton.SetEnabled(!submitting);
+            if (_registerButtonLabel != null) _registerButtonLabel.style.display = submitting ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_registerButtonSpinner != null) _registerButtonSpinner.style.display = submitting ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private void Update()
+        {
+            if (!_isSubmitting || _registerButtonSpinner == null) return;
+            _spinAngle = (_spinAngle + SpinDegreesPerSecond * Time.deltaTime) % 360f;
+            _registerButtonSpinner.style.rotate = new StyleRotate(new Rotate(new Angle(_spinAngle, AngleUnit.Degree)));
         }
 
         private void OnLinkClicked(PointerUpLinkTagEvent evt)
@@ -125,6 +156,8 @@ namespace NAS.UI.Controllers
 
         private void OnAuthFailed(AuthFailedEvent evt)
         {
+            SetSubmitting(false);
+
             if (evt.FieldErrors != null)
             {
                 SetFormError(null);

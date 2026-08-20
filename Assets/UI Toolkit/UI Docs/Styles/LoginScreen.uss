@@ -140,6 +140,37 @@
     -unity-text-align: middle-center;
     margin-bottom: 0;
     transition-duration: 0.2s;
+    /* Now holds a Label + spinner VisualElement as children (LoginCardController
+       swaps which is visible) instead of relying on the text attribute -
+       -unity-text-align above only positions Unity's own internal text
+       rendering, not child element layout, so centering needs to be explicit
+       here once real children are involved. */
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.gradient-button-label {
+    color: white;
+    font-size: 14px;
+}
+
+/* Spinning ring - same technique/speed as LoadingOverlayController's
+   .loading-spinner (rotated in code, USS alone can't loop an indefinite
+   rotation), sized down and in white instead of the accent blue since it
+   sits on this button's own solid blue fill, not a dark background. */
+.button-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-top-width: 3px;
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-right-color: rgba(255, 255, 255, 0.3);
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+    border-top-color: rgb(255, 255, 255);
 }
 
 .gradient-button:hover {

@@ -59,7 +59,10 @@
         </ui:VisualElement>
 
         <ui:Label name="register-error-label" class="form-error" style="display: none;" />
-        <ui:Button name="register-button" text="Register" class="gradient-button" style="margin-top: 8px;" />
+        <ui:Button name="register-button" class="gradient-button" style="margin-top: 8px;">
+            <ui:Label text="Register" name="register-button-label" class="gradient-button-label"/>
+            <ui:VisualElement name="register-button-spinner" class="button-spinner" style="display: none;"/>
+        </ui:Button>
 
         <ui:Label name="login-link-label"
                   text="Already have an account? &lt;link=&quot;login&quot;&gt;&lt;color=#00D4FF&gt;Login here&lt;/color&gt;&lt;/link&gt;"
