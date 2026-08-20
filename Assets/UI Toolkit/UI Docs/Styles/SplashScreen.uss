@@ -1,11 +1,9 @@
 /* Splash screen — first thing ParentPageController shows, before
    DecideInitialScreen() runs. Matches SplashScreen in mobile-designs.tsx:
    centered "Neo" + glowing cyan "X" + "R" wordmark, "AR CAR SHOWROOM"
-   subtitle, a spinning ring + "Initializing AR sensors..." flavor text
-   (decorative only — not wired to any real loading progress), and a
-   "Get Started" button. The Figma reference advances via that button's
-   onClick, not a timer, so SplashScreenController mirrors that: tapping it
-   is what raises SplashDismissedEvent. */
+   subtitle, and a "Get Started" button. The Figma reference advances via
+   that button's onClick, not a timer, so SplashScreenController mirrors
+   that: tapping it is what raises SplashDismissedEvent. */
 
 .splash-root {
     flex-grow: 1;
@@ -50,31 +48,6 @@
     font-size: 12px;
     letter-spacing: 3px;
     color: rgba(192, 192, 192, 0.7);
-    -unity-text-align: middle-center;
-}
-
-/* Rotated continuously by SplashScreenController.Update() - USS alone can't
-   loop an indefinite rotation without a keyframe/animation feature this UI
-   Toolkit version doesn't have, so the spin is driven from code instead. */
-.splash-spinner {
-    width: 48px;
-    height: 48px;
-    margin-top: 32px;
-    border-radius: 24px;
-    border-left-width: 4px;
-    border-right-width: 4px;
-    border-bottom-width: 4px;
-    border-top-width: 4px;
-    border-left-color: rgba(0, 212, 255, 0.3);
-    border-right-color: rgba(0, 212, 255, 0.3);
-    border-bottom-color: rgba(0, 212, 255, 0.3);
-    border-top-color: rgb(0, 212, 255);
-}
-
-.splash-loading-text {
-    margin-top: 16px;
-    font-size: 11px;
-    color: rgba(192, 192, 192, 0.5);
     -unity-text-align: middle-center;
 }
 

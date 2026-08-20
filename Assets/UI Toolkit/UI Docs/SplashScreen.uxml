@@ -8,8 +8,6 @@
                 <ui:Label text="R" class="splash-title"/>
             </ui:VisualElement>
             <ui:Label text="AR CAR SHOWROOM" class="splash-subtitle"/>
-            <ui:VisualElement name="splash-spinner" class="splash-spinner"/>
-            <ui:Label text="Initializing AR sensors..." class="splash-loading-text"/>
             <ui:Button name="splash-continue-button" text="Get Started" class="splash-cta-button"/>
         </ui:VisualElement>
     </ui:VisualElement>

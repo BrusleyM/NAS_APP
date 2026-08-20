@@ -19,6 +19,7 @@ namespace NAS.Core
 
         [Header("Settings")]
         [SerializeField] private bool _preventMultiplePerPlane = true; // Enable/disable plane tracking
+        [SerializeField] private float _minDistanceFromUser = 1f; // Placement point is pushed out to at least this far from the camera, so the car never spawns on top of the user
 
         private IInputProvider _inputProvider;
         private IARPlacementService _placementService;
@@ -164,6 +165,25 @@ namespace NAS.Core
                         // pin it to 0 so the car sits on the ground instead of
                         // floating/sinking; X/Z still come from the hit.
                         Vector3 placementPosition = new Vector3(pose.position.x, 0f, pose.position.z);
+
+                        // Tapping close to your own feet would spawn the car
+                        // (and its origin) right on top of you - push the
+                        // placement point out to at least _minDistanceFromUser
+                        // along the same direction from the camera, so it
+                        // never starts overlapping the user.
+                        if (Camera.main != null)
+                        {
+                            Vector3 camPos = Camera.main.transform.position;
+                            Vector3 fromCamera = new Vector3(placementPosition.x - camPos.x, 0f, placementPosition.z - camPos.z);
+                            float distance = fromCamera.magnitude;
+                            if (distance < _minDistanceFromUser)
+                            {
+                                Vector3 direction = distance > 0.001f
+                                    ? fromCamera / distance
+                                    : new Vector3(Camera.main.transform.forward.x, 0f, Camera.main.transform.forward.z).normalized; // camera exactly on the point - fall back to where it's facing
+                                placementPosition = new Vector3(camPos.x + direction.x * _minDistanceFromUser, 0f, camPos.z + direction.z * _minDistanceFromUser);
+                            }
+                        }
 
                         GameObject placedInstance;
                         if (_placementService.RaycastPrefabIsLiveInstance)
