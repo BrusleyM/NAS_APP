@@ -136,6 +136,12 @@ namespace NAS.Core
                     return;
                 }
 
+                // Discover the car's Body/Door_*/Wheels/etc. renderers once
+                // here - CarPaintController (and future consumers like a
+                // door-open animation) read this instead of re-deriving
+                // categories from material names themselves.
+                modelRoot.AddComponent<CarComponents>();
+
                 modelRoot.SetActive(false);
                 _placementService.RaycastPrefab = modelRoot;
                 _placementService.RaycastPrefabIsLiveInstance = true;

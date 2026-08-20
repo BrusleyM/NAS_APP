@@ -10,13 +10,17 @@ namespace NAS.Core
     /// for CarPlacedEvent (to know which instance to paint) and
     /// PaintColorSelectedEvent (to know what color).
     ///
-    /// Material matching is a best-effort heuristic, not a guarantee: these are
-    /// Sketchfab-sourced models with inconsistent material naming per car (see
-    /// .claude/CLAUDE.md's "Vehicle catalog" section). A material whose name
-    /// contains "paint" or is exactly "body" (case-insensitive) is treated as
-    /// the body paint material. Cars without a matching material silently keep
-    /// their original color instead of guessing wrong - this never throws or
-    /// blocks anything else in the scene.
+    /// Reads which renderers count as "body paint" from CarComponents
+    /// (CarComponents.PaintableBodyRenderers) instead of guessing from
+    /// material names - this used to be a material-name heuristic
+    /// ("contains 'paint'", excluding "trim") because these were
+    /// Sketchfab-sourced models with inconsistent material naming per car.
+    /// The Blender mesh-regrouping pass replaced that inconsistency with a
+    /// real per-car component structure, so this now trusts that structure
+    /// directly. Cars without a CarComponents (or without any paintable
+    /// renderers on it) silently keep their original color instead of
+    /// guessing wrong - this never throws or blocks anything else in the
+    /// scene.
     /// </summary>
     public class CarPaintController : MonoBehaviour
     {
@@ -53,41 +57,41 @@ namespace NAS.Core
                 return;
             }
 
+            var components = _placedInstance.GetComponent<CarComponents>();
+            if (components == null)
+            {
+                Debug.LogWarning("CarPaintController: no CarComponents on the placed car - color not applied.");
+                return;
+            }
+
             var applied = 0;
-            foreach (var renderer in _placedInstance.GetComponentsInChildren<Renderer>(true))
+            foreach (var renderer in components.PaintableBodyRenderers)
             {
                 foreach (var material in renderer.materials)
                 {
-                    if (!IsPaintMaterial(material.name)) continue;
-                    material.color = color;
+                    // glTFast's runtime-generated Shader Graph materials
+                    // (Shader Graphs/glTF-pbrMetallicRoughness and its
+                    // variants) don't expose Unity's usual "_Color"/
+                    // "_BaseColor" - material.color is a no-op on them, no
+                    // error, no warning, it just silently does nothing. The
+                    // property they actually expose is "baseColorFactor",
+                    // matching the glTF spec's own field name.
+                    if (material.HasProperty(BaseColorProperty))
+                        material.SetColor(BaseColorProperty, color);
+                    else if (material.HasProperty("_BaseColor"))
+                        material.SetColor("_BaseColor", color);
+                    else if (material.HasProperty("_Color"))
+                        material.color = color;
+                    else
+                        continue;
                     applied++;
                 }
             }
 
             if (applied == 0)
-                Debug.LogWarning("CarPaintController: no body paint material found on this car - color not applied.");
+                Debug.LogWarning("CarPaintController: CarComponents found no paintable body renderers on this car - color not applied.");
         }
 
-        private static bool IsPaintMaterial(string materialName)
-        {
-            if (string.IsNullOrEmpty(materialName)) return false;
-
-            // Unity suffixes " (Instance)" to material.name once accessed via
-            // .materials (which auto-instantiates) - strip it before matching.
-            var name = materialName.Replace(" (Instance)", "");
-
-            // Verified against the BMW M5 model: alongside its real body-paint
-            // material ("bM_CarPaint_Max1") it also ships
-            // "bM_CarPaint_Trim_CarbonA_Max1" and
-            // "bM_CarPaint_Trim_PlasticSmoothBlack_Max1" - both contain "paint"
-            // but are trim pieces that should stay their own color, not follow
-            // the body. Excluding "trim" catches both without excluding the
-            // real paint material on any of the other cars checked.
-            if (name.IndexOf("trim", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                return false;
-
-            return name.IndexOf("paint", System.StringComparison.OrdinalIgnoreCase) >= 0
-                || name.Equals("body", System.StringComparison.OrdinalIgnoreCase);
-        }
+        private static readonly int BaseColorProperty = Shader.PropertyToID("baseColorFactor");
     }
 }
