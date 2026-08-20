@@ -163,19 +163,22 @@ namespace NAS.UI.Controllers
             UpdateAll();
         }
 
-        // Inserts a plain VisualElement (styled via the "slider-fill" USS
-        // class) right after the slider's internal tracker, so it paints
-        // over the flat track but still sits behind the dragger/dragger-
-        // border (which come after it in the drag-container's child order).
+        // Inserted as a CHILD of the tracker itself, not a sibling in the
+        // drag-container - confirmed live that drag-container is much
+        // taller than the tracker (24px vs ~6px, sized to fit the 18px
+        // dragger knob plus margin), so a sibling anchored top:0/bottom:0
+        // against drag-container rendered as a tall, blocky rectangle
+        // instead of a slim bar matching the actual track. As tracker's
+        // child, top:0/bottom:0 correctly resolves against tracker's own
+        // slim height instead.
         private VisualElement CreateSliderFill(Slider slider)
         {
-            var dragContainer = slider.Q(className: "unity-base-slider__drag-container");
             var tracker = slider.Q(className: "unity-base-slider__tracker");
-            if (dragContainer == null || tracker == null) return null;
+            if (tracker == null) return null;
 
             var fill = new VisualElement { pickingMode = PickingMode.Ignore };
             fill.AddToClassList("slider-fill");
-            dragContainer.Insert(dragContainer.IndexOf(tracker) + 1, fill);
+            tracker.Add(fill);
             return fill;
         }
 

@@ -7,19 +7,19 @@
    space around it - CarSelectionScreen avoids that by giving its root both.
    Previously this root also carried a translucent/blurred "glass-card" look
    (background blur, border, rounded corners, max-width:700px) that made it
-   read as a floating card rather than a full screen like CarSelection/AR
-   Viewport - dropped in favor of a full-bleed root, matching the new
-   mobile-designs.tsx EstimatorScreen's actual container: `w-full h-full
-   flex flex-col bg-[#0e0e0e]` - solid, not transparent. The inner boxes'
-   low-opacity blue fills (info-box, financed-value, payment-box - see
-   below) are correct as-is straight from that same source; they only read
-   as "washed out"/see-through when the root itself has no solid backing,
-   letting ParentPage's own background-image bleed through underneath them.
-   Same reasoning as SplashScreen.uss's solid rgb(18,18,18) root. */
+   read as a floating card rather than a full screen - dropped in favor of a
+   full-bleed root that fills center-container properly.
+   Background is deliberately transparent (explicit user call, overriding
+   mobile-designs.tsx's standalone bg-[#0e0e0e]) - this screen renders over
+   ParentPage's shared background image, the same convention Login/
+   CarSelection already use, rather than covering it with its own solid
+   color. If box legibility against that background becomes an issue again,
+   fix it by adjusting the individual box opacities below, not by giving
+   this root its own background back. */
 .estimator-root {
     flex-grow: 1;
     width: 100%;
-    background-color: rgb(14, 14, 14);
+    background-color: transparent;
     flex-direction: column;
     padding: 6% 5% 4% 5%;
 }
@@ -155,8 +155,20 @@
     border-width: 1px;
     border-color: rgba(0, 212, 255, 0.2);
     border-radius: 8px;
-    padding: 8px 12px;
-    -unity-text-align: middle-center;
+    padding: 0 12px;
+    margin: 0; /* Unity's default .unity-label class carries its own
+                  margin (confirmed live: marginTop was 4.02px unset) -
+                  the sibling TextField-based boxes don't inherit that
+                  since they're not Label elements, so without this the
+                  two boxes in the same row start at different heights
+                  even with identical height/padding set. */
+    height: 42px; /* Matches .input-field's height (see above) - without
+                     this the box auto-sizes shorter than its row sibling
+                     (Loan Term's input), so the two don't line up. */
+    -unity-text-align: middle-left; /* Matches the other 3 boxes in this
+                                        grid (all MiddleLeft by default on
+                                        TextField) - was middle-center,
+                                        the one inconsistent box. */
 }
 
 .slider-group {
@@ -303,11 +315,19 @@
 }
 
 .balloon-container {
-    margin-top: 3%;
-    padding-top: 3%;
+    margin-top: 12px;
+    padding-top: 10px;
     border-top-width: 1px;
     border-top-color: rgba(255, 215, 0, 0.2);
     width: 84%;
+    align-items: center;
+    /* Percentage margin/padding resolves against the containing block's
+       WIDTH even for top/bottom values (standard box-model behavior) - at
+       this element's ~289px width, the old 3%/3% came out to a combined
+       ~17px for margin+padding+border, not enough room for an 11px label
+       to lay out in, so the container's own resolved height collapsed to
+       ~11px total (confirmed live: worldBound.height was 11.34, with the
+       label's own height inside reporting 0). Fixed px values instead. */
 }
 
 .balloon-info {
