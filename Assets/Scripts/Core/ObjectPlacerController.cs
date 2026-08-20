@@ -16,6 +16,7 @@ namespace NAS.Core
         [SerializeField] private MonoBehaviour _placementServiceBehaviour; // Must implement IARPlacementService
         [SerializeField] private ARPlaneManager _planeManager; // Optional: for plane visibility control
         [SerializeField] private ARSession _arSession; // Disabled/re-enabled (not destroyed) across AR entry/exit - see OnEnterAr/OnExitAr
+        [SerializeField] private ARAnchorManager _anchorManager; // Anchors the placed car to the hit plane so it doesn't drift when tracking is corrected - see TryPlaceObject
 
         [Header("Settings")]
         [SerializeField] private bool _preventMultiplePerPlane = true; // Enable/disable plane tracking
@@ -185,17 +186,46 @@ namespace NAS.Core
                             }
                         }
 
+                        ARPlane hitPlane = _planeManager != null ? _planeManager.GetPlane(planeId) : null;
+
+                        // Attach the car to an ARAnchor pinned to the hit
+                        // plane instead of just setting a raw world-space
+                        // Transform - without this, a brief tracking-quality
+                        // drop (a freeze) followed by AR Foundation
+                        // correcting the session's coordinate frame visibly
+                        // drags an unanchored object along with the
+                        // correction ("car follows the camera, shifted from
+                        // where it was placed"). An anchored object gets that
+                        // same correction applied to its transform, so it
+                        // stays pinned to its real-world point instead.
+                        Pose anchoredPose = new Pose(placementPosition, pose.rotation);
+                        ARAnchor anchor = (_anchorManager != null && hitPlane != null)
+                            ? _anchorManager.AttachAnchor(hitPlane, anchoredPose)
+                            : null;
+
                         GameObject placedInstance;
                         if (_placementService.RaycastPrefabIsLiveInstance)
                         {
                             placedInstance = prefab;
-                            placedInstance.transform.SetPositionAndRotation(placementPosition, pose.rotation);
                             placedInstance.SetActive(true);
                         }
                         else
                         {
-                            placedInstance = Instantiate(prefab, placementPosition, pose.rotation);
+                            placedInstance = Instantiate(prefab);
                         }
+
+                        if (anchor != null)
+                        {
+                            placedInstance.transform.SetParent(anchor.transform, worldPositionStays: false);
+                            placedInstance.transform.localPosition = Vector3.zero;
+                            placedInstance.transform.localRotation = Quaternion.identity;
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Could not create an ARAnchor for this placement - car will not be corrected for tracking drift.");
+                            placedInstance.transform.SetPositionAndRotation(anchoredPose.position, anchoredPose.rotation);
+                        }
+
                         EventBus.Publish(new CarPlacedEvent(placedInstance));
 
                         if (_preventMultiplePerPlane)
@@ -204,7 +234,6 @@ namespace NAS.Core
                         // Optional: hide other planes
                         if (_planeManager != null)
                         {
-                            ARPlane hitPlane = _planeManager.GetPlane(planeId);
                             if (hitPlane != null)
                             {
                                 foreach (var plane in _planeManager.trackables)
