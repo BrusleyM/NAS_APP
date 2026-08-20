@@ -373,6 +373,33 @@ row's Tigris object key lives — see "Vehicle catalog: real 3D models" above fo
 current state of that join (uploaded and recorded in the DB, not yet consumed by
 Unity for actual AR placement).
 
+### Tigris MCP server (for AI-driven asset pipeline work, e.g. Blender passes)
+
+`.mcp.json` at the repo root registers Tigris's official MCP server
+(`@tigrisdata/tigris-mcp-server` via `npx`) for direct bucket access from an
+agent — download/upload/list against `neo-ar-showroom` without going through
+Unity at all, which matters when a Unity-driven task (Editor MCP tools) is
+busy at the same time. The file is committed (references env var *names*
+only, never actual secret values, matching this workspace's preference for
+shareable/repo-based config over local-only setup — see
+`feedback_shareable_tooling` in the AI memory system).
+
+Each person running this needs three env vars set in their shell **before**
+launching Claude Code (edited into the config mid-session doesn't take
+effect until a full restart — Claude Code doesn't watch `.mcp.json` for
+changes):
+```
+export AWS_ACCESS_KEY_ID="<Tigris access key from DevStorageConfig.asset>"
+export AWS_SECRET_ACCESS_KEY="<Tigris secret key from DevStorageConfig.asset>"
+export AWS_ENDPOINT_URL_S3="https://fly.storage.tigris.dev"
+```
+Same credentials `DevStorageService`/`TigrisStorageManager` already use
+(`Assets/Resources/Config/DevStorageConfig.asset`) — this is a second way to
+reach the same bucket, not a separate account. `${VAR}` interpolation in
+`.mcp.json`'s `env` block is confirmed reliable on Claude Code **CLI**;
+known unreliable on the Desktop app (upstream bug) — if driving this from
+Desktop, set the values directly rather than relying on interpolation.
+
 ### TODO, not urgent — Tigris environment handling doesn't match Auth's pattern
 
 `GameManager._useProduction` (the other field under its `[Header("Environment")]`,
