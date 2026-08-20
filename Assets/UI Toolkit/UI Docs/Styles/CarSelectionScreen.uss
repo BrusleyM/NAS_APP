@@ -2,7 +2,15 @@
     flex-grow: 1;
     background-color: transparent;
     flex-direction: column;
-    padding: 6% 5% 8% 5%;
+    padding: 6% 5% 0 5%; /* Bottom moved to .start-button's own
+        margin-bottom (see below) - percentage padding here resolves
+        against this root's WIDTH, not height, so it was never a reliable
+        way to control vertical space from the screen edge, and this used
+        a different percentage (8%) than EstimatorScreen's equivalent root
+        (4%), so the two screens' button spacing was never actually
+        consistent despite looking similar. Standardized project-wide in
+        .start-button/.gradient-button instead, with a fixed px value
+        shared by both. */
 }
 
 .header {
@@ -196,6 +204,10 @@
     color: white;
     font-size: 16px;
     -unity-text-align: middle-center;
+    margin: 0 0 24px 0; /* Standardized project-wide bottom-of-screen
+        button spacing - same 24px on EstimatorScreen's .gradient-button.
+        See .car-selection-root's comment above for why this moved off
+        the root's padding-bottom. */
     transition-property: background-color;
     transition-duration: 0.2s;
 }

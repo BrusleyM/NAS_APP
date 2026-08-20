@@ -21,7 +21,15 @@
     width: 100%;
     background-color: transparent;
     flex-direction: column;
-    padding: 6% 5% 4% 5%;
+    padding: 6% 5% 0 5%; /* Bottom moved to .gradient-button's own
+        margin-bottom (see below) - percentage padding here resolves
+        against this root's WIDTH, not height (confirmed live, same trap
+        hit twice already on this screen), so it was never a reliable way
+        to control vertical space from the screen edge, and CarSelection
+        used a different percentage (8% vs this 4%), so the two screens'
+        button spacing was never actually consistent despite looking
+        similar. Standardized project-wide in .gradient-button/.start-button
+        instead, with a fixed px value shared by both. */
 }
 
 .header {
@@ -151,11 +159,22 @@
 .highlight .financed-value {
     font-size: 16px;
     color: rgb(0, 212, 255);
+    /* Blue tint/border kept (reverted back from a neutral-gray attempt) -
+       the actual alignment bug was never the color, it was the missing
+       width:100% below. This box is deliberately visually distinct as
+       the one read-only/computed value in the grid. */
     background-color: rgba(0, 212, 255, 0.06);
     border-width: 1px;
     border-color: rgba(0, 212, 255, 0.2);
     border-radius: 8px;
     padding: 0 12px;
+    width: 100%; /* .input-field sets this on its TextFields to stretch to
+                    the full cell width - this Label never had it, so it
+                    was hugging its own content width (112.66px) instead
+                    of matching its cell (184.71px), leaving it narrower
+                    and offset from Trade-In's box directly above it in
+                    the same column. This, not the height/color from
+                    earlier, was the actual alignment problem. */
     margin: 0; /* Unity's default .unity-label class carries its own
                   margin (confirmed live: marginTop was 4.02px unset) -
                   the sibling TextField-based boxes don't inherit that
@@ -237,6 +256,14 @@
     border-radius: 50%;
     width: 18px;
     height: 18px;
+    margin-top: -9px; /* Unity's built-in theme sets marginTop: -12.07px on
+                          this element by default (confirmed live) - that's
+                          -halfHeight for whatever this control's default
+                          thumb size is, used to center it against the
+                          track regardless of a taller drag-container. Our
+                          18px override needs its own -halfHeight (-9px) or
+                          it centers for the wrong size and sits ~3px above
+                          the track instead of on it. */
     border-width: 2px;
     border-color: rgba(255, 255, 255, 0.25);
     /* text-shadow is the only glow USS supports here (see .payment-value's
@@ -281,7 +308,19 @@
     border-width: 1px;
     border-color: rgba(0, 212, 255, 0.25);
     border-radius: 12px;
-    padding: 5% 5% 6% 5%;
+    padding: 19px 19px 48px 19px; /* Fixed px, not %, and deliberately
+        asymmetric top/bottom - percentage padding resolves against this
+        box's WIDTH even for top/bottom (standard box-model behavior,
+        already the root cause of two earlier bugs on this same screen),
+        making the vertical gap unrelated to the actual font sizes inside.
+        payment-value's 32px font carries far more line-height overhang
+        below its glyphs than payment-label's 12px font carries above
+        (confirmed live: equal 5%/5% padding still left the bottom gap
+        visually negative - text overflowing the box - while the top gap
+        stayed ~24.5px). 45px bottom vs 19px top is what measured out to
+        matching visible gaps above the label and below whatever's
+        actually last (payment-value, or balloon-info's text when the
+        balloon container is showing - both were checked). */
     margin: 0;
     flex-direction: column;
     align-items: center;
@@ -351,7 +390,14 @@
     font-size: 14px;
     -unity-text-align: middle-center;
     text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-    margin: 0;
+    margin: 0 0 24px 0; /* Standardized project-wide bottom-of-screen
+        button spacing - same 24px on CarSelectionScreen's .start-button.
+        Fixed px, not %, and on the button itself rather than its root's
+        padding-bottom, so it's not tied to either screen's root width and
+        can't silently drift out of sync between screens the way the two
+        roots' own padding-bottom percentages already had (4% vs 8%,
+        neither of which was really about vertical space anyway - see
+        .estimator-root's comment above). */
     flex-shrink: 0;
     transition-property: background-color;
     transition-duration: 0.2s;
