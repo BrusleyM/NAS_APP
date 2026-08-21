@@ -27,10 +27,6 @@ namespace NAS.UI.Controllers
         // They're handed in via Initialize() instead, sourced from
         // ParentPageController's own [SerializeField] fields (which - unlike
         // this controller - IS scene-placed and Inspector-wireable).
-        private ApiSettings _apiSettings;
-        private ApiSettings _apiDomainSettings;
-        private ApiSettings _apiIpSettings;
-
         private VisualTreeAsset _carCardTemplate;
         private IVehicleCatalogApi _vehicleApi;
         private RemoteTextureLoader _thumbnailLoader;
@@ -68,12 +64,9 @@ namespace NAS.UI.Controllers
         // happens here, not in OnEnable(). See this project's .claude/CLAUDE.md
         // "Important gotcha" for why - OnEnable only does the
         // data-independent DOM-querying/event wiring.
-        public void Initialize(VisualTreeAsset carCardTemplate, ApiSettings apiSettings, ApiSettings apiDomainSettings, ApiSettings apiIpSettings)
+        public void Initialize(VisualTreeAsset carCardTemplate)
         {
             _carCardTemplate = carCardTemplate;
-            _apiSettings = apiSettings;
-            _apiDomainSettings = apiDomainSettings;
-            _apiIpSettings = apiIpSettings;
             InitializeCarData();
             SetupUI();
         }
@@ -134,7 +127,7 @@ namespace NAS.UI.Controllers
             _allCars = new List<CarData>();
             _loadState = CarLoadState.Loading;
 
-            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, _apiIpSettings, LogPrefix);
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
             if (resolved.Settings == null)
             {
                 Debug.LogError($"{LogPrefix} ApiSettings is missing on CarSelectionScreenController.");

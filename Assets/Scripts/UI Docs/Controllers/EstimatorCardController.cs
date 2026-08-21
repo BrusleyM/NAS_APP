@@ -29,15 +29,6 @@ namespace NAS.UI.Controllers
         [SerializeField] private VisualElement _balloonContainer;
         [SerializeField] private Label _sendErrorLabel;
 
-        // Not [SerializeField]: this controller is never pre-placed in the
-        // scene (added dynamically via AddComponent<T>() by
-        // ParentPageController), so it has no Inspector to assign these in.
-        // Handed in via Initialize() instead - see CarSelectionScreenController
-        // for the same pattern and the "Important gotcha" in this project's
-        // .claude/CLAUDE.md for why OnEnable can't just read them directly.
-        private ApiSettings _apiSettings;
-        private ApiSettings _apiDomainSettings;
-        private ApiSettings _apiIpSettings;
         private const string LogPrefix = "[NAS Estimator]";
 
         // Value-based fill bars for the two sliders - UI Toolkit's Slider
@@ -58,16 +49,6 @@ namespace NAS.UI.Controllers
         private int _loanTerm;
         private float _interestRate;
         private float _balloonPercent;
-
-        // Called by ParentPageController right after AddComponent<T>() - see
-        // the "Important gotcha" in this project's .claude/CLAUDE.md for why
-        // this can't just be read directly in OnEnable.
-        public void Initialize(ApiSettings apiSettings, ApiSettings apiDomainSettings, ApiSettings apiIpSettings)
-        {
-            _apiSettings = apiSettings;
-            _apiDomainSettings = apiDomainSettings;
-            _apiIpSettings = apiIpSettings;
-        }
 
         private void OnEnable()
         {
@@ -296,7 +277,7 @@ namespace NAS.UI.Controllers
                 return;
             }
 
-            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, _apiIpSettings, LogPrefix);
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
             if (resolved.Settings == null)
             {
                 Debug.LogError($"{LogPrefix} ApiSettings is missing on EstimatorCardController.");

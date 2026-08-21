@@ -1,5 +1,6 @@
 using NAS.Core.Interfaces;
 using NAS.Core.Events;
+using NAS.Core.Networking;
 using NAS.Storage;
 using NAS.Configuration;
 using System.Collections.Generic;
@@ -26,6 +27,18 @@ namespace NAS.Core
         [Tooltip("Project-wide switch for which backend API endpoint to use. Local = http://localhost:5080 (safe default, always works). ApiDomain = https://api.nas.test:8443 via the optional local nginx proxy (NAS_Backend/nginx/README.md) - only works on a device that resolves api.nas.test (this Mac via /etc/hosts, or another device via dnsmasq's device-DNS override). ApiIp = same nginx proxy, addressed by raw LAN IP instead of the hostname - for a device on a network where nothing resolves api.nas.test (e.g. a phone hotspot without the dnsmasq override set up); update the ApiIp ApiSettings asset's URL when the LAN IP changes. Keep this at Local in anything committed/pushed, or teammates without that setup will have auth silently fail. AuthController reads this in Start() rather than owning its own toggle.")]
         [SerializeField] private AppEnvironment _environment = AppEnvironment.Local;
         public AppEnvironment CurrentEnvironment => _environment;
+
+        [Tooltip("Used when CurrentEnvironment is Local. Single project-wide reference - every feature that talks to the API resolves its ApiSettings through EnvironmentResolver.Resolve(), which reads these three fields, instead of each controller wiring its own copies.")]
+        [SerializeField] private ApiSettings _apiSettings;
+        public ApiSettings ApiSettings => _apiSettings;
+
+        [Tooltip("Used when CurrentEnvironment is ApiDomain.")]
+        [SerializeField] private ApiSettings _apiDomainSettings;
+        public ApiSettings ApiDomainSettings => _apiDomainSettings;
+
+        [Tooltip("Used when CurrentEnvironment is ApiIp.")]
+        [SerializeField] private ApiSettings _apiIpSettings;
+        public ApiSettings ApiIpSettings => _apiIpSettings;
 
         [Header("Session")]
         public User CurrentUser { get; private set; }

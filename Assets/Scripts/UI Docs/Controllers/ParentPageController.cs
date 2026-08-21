@@ -3,7 +3,6 @@ using UnityEngine.UIElements;
 using UnityEngine.SceneManagement;
 using NAS.Core;
 using NAS.Core.Events;
-using NAS.Core.Networking;
 
 namespace NAS.UI.Controllers
 {
@@ -26,11 +25,6 @@ namespace NAS.UI.Controllers
         [SerializeField] private VisualTreeAsset _estimatorCardUxml;
         [SerializeField] private VisualTreeAsset _carCardUxml;
         [SerializeField] private string _backgroundImagePath = "Assets/Textures/UI/background.png";
-
-        [Tooltip("Passed to CarSelectionScreenController.Initialize() - same assets AuthController uses. Assign here, not on CarSelectionScreenController itself, since that controller is never pre-placed in the scene (added dynamically via AddComponent) and so has no Inspector of its own to assign these in.")]
-        [SerializeField] private ApiSettings _apiSettings;
-        [SerializeField] private ApiSettings _apiDomainSettings;
-        [SerializeField] private ApiSettings _apiIpSettings;
 
         private UIDocument _uiDocument;
         private VisualElement _cardContainer;
@@ -225,7 +219,7 @@ namespace NAS.UI.Controllers
             RemoveCardControllers();
             _carSelectionCardUxml.CloneTree(_cardContainer);
             var carSelectionCtrl = gameObject.AddComponent<CarSelectionScreenController>();
-            carSelectionCtrl.Initialize(_carCardUxml, _apiSettings, _apiDomainSettings, _apiIpSettings);
+            carSelectionCtrl.Initialize(_carCardUxml);
         }
 
         public void ShowEstimatorCard()
@@ -234,8 +228,7 @@ namespace NAS.UI.Controllers
             _cardContainer.Clear();
             RemoveCardControllers();
             _estimatorCardUxml.CloneTree(_cardContainer);
-            var estimatorCtrl = gameObject.AddComponent<EstimatorCardController>();
-            estimatorCtrl.Initialize(_apiSettings, _apiDomainSettings, _apiIpSettings);
+            gameObject.AddComponent<EstimatorCardController>();
         }
 
         private void RemoveCardControllers()

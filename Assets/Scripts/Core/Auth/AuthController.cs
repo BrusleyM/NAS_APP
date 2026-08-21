@@ -17,15 +17,6 @@ namespace NAS.Core.Auth
     {
         private const string LogPrefix = "[NAS Auth]";
 
-        [Tooltip("Used when GameManager.CurrentEnvironment is Local (the default).")]
-        [SerializeField] private ApiSettings _apiSettings;
-
-        [Tooltip("Used when GameManager.CurrentEnvironment is ApiDomain (see GameManager's own Environment field for the full explanation). Not selected here - AuthController no longer owns its own toggle, GameManager does, so there's a single project-wide switch instead of one per script that has to be kept in sync by hand.")]
-        [SerializeField] private ApiSettings _apiDomainSettings;
-
-        [Tooltip("Used when GameManager.CurrentEnvironment is ApiIp - same proxy as ApiDomain, addressed by raw LAN IP instead of the api.nas.test hostname, for networks where that hostname doesn't resolve on the device (e.g. a phone hotspot without dnsmasq's device-DNS override set up).")]
-        [SerializeField] private ApiSettings _apiIpSettings;
-
         private ICustomerAuthApi _authApi;
         private AuthSession _session;
         private bool _requestInProgress;
@@ -41,7 +32,7 @@ namespace NAS.Core.Auth
             // guarantee Awake() order across different GameObjects, but Start()
             // is guaranteed to run only after every object's Awake() has, so
             // GameManager.Instance is reliably set by this point.
-            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, _apiIpSettings, LogPrefix);
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
 
             if (resolved.Settings == null)
             {
