@@ -4,6 +4,7 @@ using NAS.Core.Models;
 using NAS.Core.Interfaces;
 using NAS.Core.Services;
 using NAS.Core.Events;
+using NAS.Core.Networking;
 using NAS.Core;
 
 namespace NAS.UI.Controllers
@@ -26,6 +27,18 @@ namespace NAS.UI.Controllers
         [SerializeField] private Label _loanInterestInfoLabel;
         [SerializeField] private Button _sendButton;
         [SerializeField] private VisualElement _balloonContainer;
+        [SerializeField] private Label _sendErrorLabel;
+
+        // Not [SerializeField]: this controller is never pre-placed in the
+        // scene (added dynamically via AddComponent<T>() by
+        // ParentPageController), so it has no Inspector to assign these in.
+        // Handed in via Initialize() instead - see CarSelectionScreenController
+        // for the same pattern and the "Important gotcha" in this project's
+        // .claude/CLAUDE.md for why OnEnable can't just read them directly.
+        private ApiSettings _apiSettings;
+        private ApiSettings _apiDomainSettings;
+        private ApiSettings _apiIpSettings;
+        private const string LogPrefix = "[NAS Estimator]";
 
         // Value-based fill bars for the two sliders - UI Toolkit's Slider
         // has no built-in "filled portion" and USS here has no gradient
@@ -37,12 +50,24 @@ namespace NAS.UI.Controllers
 
         private VehicleInfo _vehicle;
         private ILoanCalculator _loanCalculator;
-        
+        private IEstimatorApi _estimatorApi;
+        private bool _isSubmitting;
+
         private float _deposit;
         private float _tradeIn;
         private int _loanTerm;
         private float _interestRate;
         private float _balloonPercent;
+
+        // Called by ParentPageController right after AddComponent<T>() - see
+        // the "Important gotcha" in this project's .claude/CLAUDE.md for why
+        // this can't just be read directly in OnEnable.
+        public void Initialize(ApiSettings apiSettings, ApiSettings apiDomainSettings, ApiSettings apiIpSettings)
+        {
+            _apiSettings = apiSettings;
+            _apiDomainSettings = apiDomainSettings;
+            _apiIpSettings = apiIpSettings;
+        }
 
         private void OnEnable()
         {
@@ -89,6 +114,7 @@ namespace NAS.UI.Controllers
             if (_loanInterestInfoLabel == null) _loanInterestInfoLabel = root.Q<Label>("loan_interest_info");
             if (_sendButton == null) _sendButton = root.Q<Button>("send-button");
             if (_balloonContainer == null) _balloonContainer = root.Q<VisualElement>("balloon-info-container");
+            if (_sendErrorLabel == null) _sendErrorLabel = root.Q<Label>("estimator-error-label");
 
             // Display the selected car's name/price - previously the header
             // label was a hardcoded "Tesla Model S · Performance Trim" string
@@ -256,12 +282,76 @@ namespace NAS.UI.Controllers
 
         private void OnSendToDealer()
         {
+            if (_isSubmitting) return; // Button is disabled while submitting, but guard anyway
+            SetSendError(null);
+
             float financed = _vehicle.retailPrice - _deposit - _tradeIn;
             if (financed < 0) financed = 0;
             float balloonAmount = financed * (_balloonPercent / 100f);
             float monthly = _loanCalculator.CalculateMonthlyPayment(financed, balloonAmount, _loanTerm, _interestRate);
 
-            EventBus.Publish(new EstimateSubmittedEvent(_vehicle, financed, monthly));
+            if (_vehicle.id <= 0)
+            {
+                SetSendError("No vehicle selected - go back and pick a car first.");
+                return;
+            }
+
+            var resolved = EnvironmentResolver.Resolve(_apiSettings, _apiDomainSettings, _apiIpSettings, LogPrefix);
+            if (resolved.Settings == null)
+            {
+                Debug.LogError($"{LogPrefix} ApiSettings is missing on EstimatorCardController.");
+                SetSendError("Something went wrong. Please try again later.");
+                return;
+            }
+
+            var accessToken = GameManager.Instance != null ? GameManager.Instance.AccessToken : null;
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                SetSendError("Please sign in to continue.");
+                return;
+            }
+
+            _estimatorApi = new EstimatorApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new SubmitEstimateRequest
+            {
+                vehicleModelId = _vehicle.id,
+                depositAmount = _deposit,
+                tradeInValue = _tradeIn,
+                termMonths = _loanTerm,
+                interestRate = _interestRate,
+                estimatedMonthly = monthly,
+                balloonAmount = balloonAmount
+            };
+
+            SetSubmitting(true);
+            _estimatorApi.SubmitEstimate(request, accessToken, result =>
+            {
+                SetSubmitting(false);
+                if (result.Success)
+                {
+                    EventBus.Publish(new EstimateSubmittedEvent(_vehicle, financed, monthly));
+                }
+                else
+                {
+                    Debug.LogError($"{LogPrefix} Submit failed: {result.Error.Detail}");
+                    SetSendError(result.Error.UserMessage);
+                }
+            });
+        }
+
+        private void SetSubmitting(bool submitting)
+        {
+            _isSubmitting = submitting;
+            if (_sendButton == null) return;
+            _sendButton.SetEnabled(!submitting);
+            _sendButton.text = submitting ? "Sending..." : "Send to Dealer";
+        }
+
+        private void SetSendError(string message)
+        {
+            if (_sendErrorLabel == null) return;
+            _sendErrorLabel.text = message ?? string.Empty;
+            _sendErrorLabel.style.display = string.IsNullOrEmpty(message) ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         private void OnDisable()

@@ -234,7 +234,8 @@ namespace NAS.UI.Controllers
             _cardContainer.Clear();
             RemoveCardControllers();
             _estimatorCardUxml.CloneTree(_cardContainer);
-            gameObject.AddComponent<EstimatorCardController>();
+            var estimatorCtrl = gameObject.AddComponent<EstimatorCardController>();
+            estimatorCtrl.Initialize(_apiSettings, _apiDomainSettings, _apiIpSettings);
         }
 
         private void RemoveCardControllers()

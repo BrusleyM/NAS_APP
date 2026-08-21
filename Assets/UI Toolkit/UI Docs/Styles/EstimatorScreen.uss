@@ -407,6 +407,16 @@
     background-color: rgba(0, 150, 200, 0.9);
 }
 
+/* Backend submission failure for the Send to Dealer button - same red/
+   centered convention as LoginScreen.uss's .form-error. */
+.estimator-error {
+    font-size: 12px;
+    color: rgb(255, 85, 85);
+    -unity-text-align: middle-center;
+    margin: 0 0 8px 0;
+    white-space: normal;
+}
+
 .footnote {
     font-size: 10px;
     color: rgba(192, 192, 192, 0.5);

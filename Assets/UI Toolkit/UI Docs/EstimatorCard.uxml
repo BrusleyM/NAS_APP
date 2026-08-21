@@ -61,6 +61,7 @@
             </ui:VisualElement>
             <ui:Label text="* Estimated payment based on 4.5% APR. Actual rates may vary." name="loan_interest_info" class="footnote"/>
         </ui:ScrollView>
+        <ui:Label name="estimator-error-label" class="estimator-error" style="display: none;"/>
         <ui:Button name="send-button" text="Send to Dealer" class="gradient-button"/>
     </ui:VisualElement>
 </ui:UXML>
