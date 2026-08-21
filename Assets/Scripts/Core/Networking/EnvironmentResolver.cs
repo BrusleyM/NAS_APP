@@ -20,7 +20,7 @@ namespace NAS.Core.Networking
             }
         }
 
-        public static Resolved Resolve(ApiSettings localSettings, ApiSettings apiDomainSettings, string logPrefix)
+        public static Resolved Resolve(ApiSettings localSettings, ApiSettings apiDomainSettings, ApiSettings apiIpSettings, string logPrefix)
         {
             var environment = GameManager.Instance != null
                 ? GameManager.Instance.CurrentEnvironment
@@ -32,6 +32,14 @@ namespace NAS.Core.Networking
                     return new Resolved(apiDomainSettings, trustAnyCertificate: true);
 
                 Debug.LogWarning($"{logPrefix} GameManager.CurrentEnvironment is ApiDomain but the ApiDomain ApiSettings asset is not assigned. Falling back to local.");
+            }
+
+            if (environment == AppEnvironment.ApiIp)
+            {
+                if (apiIpSettings != null)
+                    return new Resolved(apiIpSettings, trustAnyCertificate: true);
+
+                Debug.LogWarning($"{logPrefix} GameManager.CurrentEnvironment is ApiIp but the ApiIp ApiSettings asset is not assigned. Falling back to local.");
             }
 
             return new Resolved(localSettings, trustAnyCertificate: false);

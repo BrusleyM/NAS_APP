@@ -30,6 +30,7 @@ namespace NAS.UI.Controllers
         [Tooltip("Passed to CarSelectionScreenController.Initialize() - same assets AuthController uses. Assign here, not on CarSelectionScreenController itself, since that controller is never pre-placed in the scene (added dynamically via AddComponent) and so has no Inspector of its own to assign these in.")]
         [SerializeField] private ApiSettings _apiSettings;
         [SerializeField] private ApiSettings _apiDomainSettings;
+        [SerializeField] private ApiSettings _apiIpSettings;
 
         private UIDocument _uiDocument;
         private VisualElement _cardContainer;
@@ -224,7 +225,7 @@ namespace NAS.UI.Controllers
             RemoveCardControllers();
             _carSelectionCardUxml.CloneTree(_cardContainer);
             var carSelectionCtrl = gameObject.AddComponent<CarSelectionScreenController>();
-            carSelectionCtrl.Initialize(_carCardUxml, _apiSettings, _apiDomainSettings);
+            carSelectionCtrl.Initialize(_carCardUxml, _apiSettings, _apiDomainSettings, _apiIpSettings);
         }
 
         public void ShowEstimatorCard()

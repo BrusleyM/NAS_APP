@@ -162,10 +162,13 @@ namespace NAS.Core
                         // coroutine loop exits after the first success). The
                         // placeholder prefab fallback has no scene instance
                         // yet, so it still needs a real Instantiate().
-                        // Raycast hit's Y can drift slightly off the real floor -
-                        // pin it to 0 so the car sits on the ground instead of
-                        // floating/sinking; X/Z still come from the hit.
-                        Vector3 placementPosition = new Vector3(pose.position.x, 0f, pose.position.z);
+                        // Use the raycast hit's Y as-is - it's the real
+                        // detected floor height. A fixed 0f assumed local
+                        // Y=0 always meant "the floor", which only held while
+                        // XR Origin's CameraYOffset was compensating for it;
+                        // with that offset at 0, Y=0 is wherever the AR
+                        // session started tracking from, not the floor.
+                        Vector3 placementPosition = pose.position;
 
                         // Tapping close to your own feet would spawn the car
                         // (and its origin) right on top of you - push the
@@ -182,7 +185,7 @@ namespace NAS.Core
                                 Vector3 direction = distance > 0.001f
                                     ? fromCamera / distance
                                     : new Vector3(Camera.main.transform.forward.x, 0f, Camera.main.transform.forward.z).normalized; // camera exactly on the point - fall back to where it's facing
-                                placementPosition = new Vector3(camPos.x + direction.x * _minDistanceFromUser, 0f, camPos.z + direction.z * _minDistanceFromUser);
+                                placementPosition = new Vector3(camPos.x + direction.x * _minDistanceFromUser, placementPosition.y, camPos.z + direction.z * _minDistanceFromUser);
                             }
                         }
 
