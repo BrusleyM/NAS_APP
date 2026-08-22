@@ -166,6 +166,9 @@ namespace NAS.Core.Events
 
     // ---- Estimator flow -------------------------------------------------------
 
+    /// <summary>Raised by EstimatorCardController right before it calls the submit-estimate API, so EstimateConfirmationOverlayController can show its spinner state.</summary>
+    public readonly struct EstimateSubmissionStartedEvent { }
+
     /// <summary>Raised by EstimatorCardController when the user sends the estimate to the dealer.</summary>
     public readonly struct EstimateSubmittedEvent
     {
@@ -179,6 +182,12 @@ namespace NAS.Core.Events
             MonthlyPayment = monthlyPayment;
         }
     }
+
+    /// <summary>Raised by EstimatorCardController if the submit-estimate API call fails, so EstimateConfirmationOverlayController hides its overlay and lets the existing inline error label do its job.</summary>
+    public readonly struct EstimateSubmissionFailedEvent { }
+
+    /// <summary>Raised by EstimateConfirmationOverlayController's "Back to car selection" button - ParentPageController reacts by showing the car selection screen, same as its other pure-router event handlers.</summary>
+    public readonly struct ReturnToCarSelectionRequestedEvent { }
 
     // ---- Global loading overlay -------------------------------------------------------
     // LoadingOverlayController lives on a child of the persistent Game Manager

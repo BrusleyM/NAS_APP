@@ -1,0 +1,73 @@
+/* Confirmation overlay shown while/after "Send to Dealer" submits an
+   estimate. Deliberately duplicates LoadingOverlay.uss's root/spinner/message
+   look (same flat #121212 background, same spinner ring) rather than sharing
+   its classes - this overlay has its own state machine (spinner -> checkmark
+   -> enabled button) that the generic, reused-everywhere LoadingOverlay
+   doesn't need to carry. */
+
+.estimate-confirmation-root {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(18, 18, 18);
+}
+
+.estimate-confirmation-spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    border-left-width: 4px;
+    border-right-width: 4px;
+    border-bottom-width: 4px;
+    border-top-width: 4px;
+    border-left-color: rgba(0, 212, 255, 0.3);
+    border-right-color: rgba(0, 212, 255, 0.3);
+    border-bottom-color: rgba(0, 212, 255, 0.3);
+    border-top-color: rgb(0, 212, 255);
+}
+
+/* Swapped in for the spinner once the submission succeeds - drop the
+   checkmark SVG at Assets/Textures/icons/checkmark.svg (matches this
+   project's existing icon convention, e.g. ArViewportScreen.uss's
+   gear.svg/paint-brush.svg) and it renders here with no further changes. */
+.estimate-confirmation-checkmark {
+    width: 64px;
+    height: 64px;
+    background-image: url("project://database/Assets/Textures/icons/checkmark.svg");
+    -unity-background-image-tint-color: rgb(0, 212, 255);
+}
+
+.estimate-confirmation-message {
+    margin-top: 16px;
+    font-size: 12px;
+    color: rgba(192, 192, 192, 0.8);
+    -unity-text-align: middle-center;
+}
+
+/* Duplicated from EstimatorScreen.uss's .gradient-button - a <Style src>
+   only sees the rules in the stylesheets a UXML actually links, so this
+   overlay's own button needs its own copy of the look rather than a Button
+   whose class name silently does nothing here. */
+.estimate-confirmation-done-button {
+    background-color: rgba(0, 212, 255, 0.8);
+    border-width: 1px;
+    border-color: rgba(0, 212, 255, 0.5);
+    border-radius: 12px;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
+    -unity-text-align: middle-center;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    margin-top: 32px;
+    width: 80%;
+}
+
+.estimate-confirmation-done-button:hover {
+    background-color: rgba(0, 150, 200, 0.9);
+}
+
+.estimate-confirmation-done-button:disabled {
+    opacity: 0.4;
+}

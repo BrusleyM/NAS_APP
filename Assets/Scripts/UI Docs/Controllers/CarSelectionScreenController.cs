@@ -31,6 +31,11 @@ namespace NAS.UI.Controllers
         private IVehicleCatalogApi _vehicleApi;
         private RemoteTextureLoader _thumbnailLoader;
         private CarLoadState _loadState = CarLoadState.Loading;
+        // car.imageUrl from the API is a relative path (e.g.
+        // "/uploads/vehicles/<guid>.png") - RequestCarThumbnail needs this to
+        // build an absolute URL before handing it to UnityWebRequestTexture,
+        // which can't resolve a relative path to a host on its own.
+        private string _apiBaseUrl;
 
         private Button _typeDropdownButton;
         private Label _selectedTypeLabel;
@@ -138,6 +143,7 @@ namespace NAS.UI.Controllers
 
             _vehicleApi = new VehicleCatalogApi(this, resolved.Settings, resolved.TrustAnyCertificate);
             _thumbnailLoader = new RemoteTextureLoader(this, resolved.TrustAnyCertificate);
+            _apiBaseUrl = resolved.Settings.BaseUrl;
 
             string accessToken = GameManager.Instance != null ? GameManager.Instance.AccessToken : null;
             _vehicleApi.GetVehicles(dealershipId: null, accessToken, OnVehiclesLoaded);
@@ -168,7 +174,21 @@ namespace NAS.UI.Controllers
                 return;
             }
 
-            _thumbnailLoader.RequestTexture(car.imageUrl, onLoaded);
+            _thumbnailLoader.RequestTexture(ResolveImageUrl(car.imageUrl), onLoaded);
+        }
+
+        // car.imageUrl is a relative path like "/uploads/vehicles/<guid>.png" -
+        // UnityWebRequestTexture can't resolve that to a host on its own, so it
+        // needs prefixing with the same API base URL the vehicle catalog/auth
+        // requests already use. Left as-is if it's already absolute (e.g. a
+        // future CDN-hosted image), so this doesn't double-prefix.
+        private string ResolveImageUrl(string imageUrl)
+        {
+            if (imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return imageUrl;
+
+            return string.IsNullOrEmpty(_apiBaseUrl) ? imageUrl : $"{_apiBaseUrl}{imageUrl}";
         }
 
         private void PopulateDropdown()

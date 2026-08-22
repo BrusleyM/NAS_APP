@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NAS.Core;
 using NAS.Core.Events;
 using NAS.Core.Models;
+using NAS.Core.Networking;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -17,6 +18,7 @@ namespace NAS.UI.Controllers
     public class ArViewportController : MonoBehaviour
     {
         private const string PaintCategoryId = "paint";
+        private const string LogPrefix = "[NAS AR Viewport]";
 
         private static readonly string[] CategoryIds = { "wheel", "paint", "trims", "dashboard" };
         private static readonly string[] CategoryButtonNames = { "category-wheel", "category-paint", "category-trims", "category-dashboard" };
@@ -40,6 +42,9 @@ namespace NAS.UI.Controllers
         private Label _categoryPlaceholderText;
         private Button _selectedSwatch;
         private string _activeCategoryId;
+
+        private IConfigurationApi _configurationApi;
+        private bool _isConfirming;
 
         private void OnEnable()
         {
@@ -264,12 +269,64 @@ namespace NAS.UI.Controllers
             EventBus.Publish(new ExitArRequestedEvent());
         }
 
+        // Finalizes a SavedConfiguration for the selected car before handing
+        // off to the Estimator - best-effort, same philosophy as
+        // EstimatorService's auto-scoring hook: there's no Customize UI yet
+        // for the customer to have picked trim/color/interior/wheel, so this
+        // just asks the backend to fill in that vehicle's default options,
+        // giving the eventual Lead a real SavedConfigurationId instead of
+        // always leaving it null. Any failure (no network, no vehicle
+        // selected, not signed in) must never block the customer from
+        // reaching the Estimator - it just proceeds with SelectedConfigurationId
+        // left at 0, same as before this existed.
+        private void OnConfirmClicked()
+        {
+            if (_isConfirming) return;
+
+            var gameManager = GameManager.Instance;
+            var selectedCar = gameManager != null ? gameManager.SelectedCar : null;
+            var accessToken = gameManager != null ? gameManager.AccessToken : null;
+            if (selectedCar == null || selectedCar.id <= 0 || string.IsNullOrEmpty(accessToken))
+            {
+                ProceedToEstimator();
+                return;
+            }
+
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
+            if (resolved.Settings == null)
+            {
+                Debug.LogWarning($"{LogPrefix} ApiSettings is missing - proceeding without a saved configuration.");
+                ProceedToEstimator();
+                return;
+            }
+
+            _isConfirming = true;
+            if (_confirmButton != null)
+                _confirmButton.SetEnabled(false);
+
+            _configurationApi = new ConfigurationApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new CreateConfigurationRequest { vehicleModelId = selectedCar.id };
+            _configurationApi.CreateConfiguration(request, accessToken, result =>
+            {
+                _isConfirming = false;
+                if (_confirmButton != null)
+                    _confirmButton.SetEnabled(true);
+
+                if (result.Success)
+                    gameManager.SelectedConfigurationId = result.Value.id;
+                else
+                    Debug.LogWarning($"{LogPrefix} Failed to create configuration: {result.Error.Detail}");
+
+                ProceedToEstimator();
+            });
+        }
+
         // ReturnToEstimatorRequestedEvent is exactly what GameManager already
         // listens for to set ReturnToEstimator = true, which
         // DecideInitialScreen() checks to show the estimator card instead of
         // car selection - reusing that existing "return from AR" contract
         // rather than adding a new event for it.
-        private void OnConfirmClicked()
+        private void ProceedToEstimator()
         {
             EventBus.Publish(new ReturnToEstimatorRequestedEvent());
             HideUi();

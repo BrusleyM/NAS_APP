@@ -1,0 +1,9 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/UI%20Docs/Styles/EstimateConfirmationOverlay.uss"/>
+    <ui:VisualElement name="estimate-confirmation-root" class="estimate-confirmation-root">
+        <ui:VisualElement name="estimate-confirmation-spinner" class="estimate-confirmation-spinner"/>
+        <ui:VisualElement name="estimate-confirmation-checkmark" class="estimate-confirmation-checkmark" style="display: none;"/>
+        <ui:Label name="estimate-confirmation-message" text="Sending to dealer..." class="estimate-confirmation-message"/>
+        <ui:Button name="estimate-confirmation-done-button" text="Back to Car Selection" class="estimate-confirmation-done-button"/>
+    </ui:VisualElement>
+</ui:UXML>

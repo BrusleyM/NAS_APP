@@ -301,10 +301,12 @@ namespace NAS.UI.Controllers
                 termMonths = _loanTerm,
                 interestRate = _interestRate,
                 estimatedMonthly = monthly,
-                balloonAmount = balloonAmount
+                balloonAmount = balloonAmount,
+                savedConfigurationId = GameManager.Instance != null ? GameManager.Instance.SelectedConfigurationId : 0
             };
 
             SetSubmitting(true);
+            EventBus.Publish(new EstimateSubmissionStartedEvent());
             _estimatorApi.SubmitEstimate(request, accessToken, result =>
             {
                 SetSubmitting(false);
@@ -316,6 +318,7 @@ namespace NAS.UI.Controllers
                 {
                     Debug.LogError($"{LogPrefix} Submit failed: {result.Error.Detail}");
                     SetSendError(result.Error.UserMessage);
+                    EventBus.Publish(new EstimateSubmissionFailedEvent());
                 }
             });
         }

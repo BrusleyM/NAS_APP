@@ -60,6 +60,16 @@ namespace NAS.Core
         // second+ entry (destroying and recreating ARSession/XROrigin is not
         // the AR Foundation-documented pattern; disabling/re-enabling is).
         public bool IsArSceneLoaded { get; set; } = false;
+        // Set by ArViewportController after the Confirm button's best-effort
+        // call to POST /api/customer/configurations succeeds (0 if that call
+        // hasn't happened yet or failed - matches the same "0 means unset"
+        // convention the backend already expects, since Unity's JsonUtility
+        // can't send a real null for an unset int). EstimatorCardController
+        // reads this directly (a plain field, no Session*Event) rather than
+        // reacting to a car-selection-style event, since nothing needs it
+        // synchronously as part of an event chain - it's just read later,
+        // once the Estimator screen is shown.
+        public int SelectedConfigurationId { get; set; } = 0;
 
         private IStorageService _storage;
 
@@ -115,6 +125,7 @@ namespace NAS.Core
         private void OnCarSelected(CarSelectedEvent evt)
         {
             SelectedCar = evt.Vehicle;
+            SelectedConfigurationId = 0; // belonged to whatever car was previously selected
             EventBus.Publish(new SessionCarSelectedEvent(SelectedCar));
         }
         private void OnReturnToEstimatorRequested(ReturnToEstimatorRequestedEvent evt) => ReturnToEstimator = true;

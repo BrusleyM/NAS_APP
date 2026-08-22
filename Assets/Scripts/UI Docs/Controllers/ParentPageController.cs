@@ -91,6 +91,7 @@ namespace NAS.UI.Controllers
             EventBus.Subscribe<SessionCarSelectedEvent>(OnCarSelected);
             EventBus.Subscribe<SplashDismissedEvent>(OnSplashDismissed);
             EventBus.Subscribe<ExitArRequestedEvent>(OnExitAr);
+            EventBus.Subscribe<ReturnToCarSelectionRequestedEvent>(OnReturnToCarSelectionRequested);
         }
 
         private void UnsubscribeFromFlowEvents()
@@ -101,6 +102,7 @@ namespace NAS.UI.Controllers
             EventBus.Unsubscribe<SessionCarSelectedEvent>(OnCarSelected);
             EventBus.Unsubscribe<SplashDismissedEvent>(OnSplashDismissed);
             EventBus.Unsubscribe<ExitArRequestedEvent>(OnExitAr);
+            EventBus.Unsubscribe<ReturnToCarSelectionRequestedEvent>(OnReturnToCarSelectionRequested);
         }
 
         // Subscribed to GameManager's SessionAuthenticatedEvent/SessionCarSelectedEvent,
@@ -153,6 +155,12 @@ namespace NAS.UI.Controllers
             GameManager.Instance.HasShownSplash = true;
             DecideInitialScreen();
         }
+
+        // Raised by EstimateConfirmationOverlayController's "Back to Car
+        // Selection" button once a submission has succeeded - reuses the
+        // existing ShowCarSelectionScreen() card swap, same as every other
+        // navigation this router handles.
+        private void OnReturnToCarSelectionRequested(ReturnToCarSelectionRequestedEvent evt) => ShowCarSelectionScreen();
 
         // AR Scene is never unloaded (see OnCarSelected above), so this is
         // the only way back to a Main App card after the first AR visit -
