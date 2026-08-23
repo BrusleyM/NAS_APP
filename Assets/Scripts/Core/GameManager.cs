@@ -3,6 +3,7 @@ using NAS.Core.Events;
 using NAS.Core.Networking;
 using NAS.Storage;
 using NAS.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NAS.Core.Models;
@@ -70,6 +71,26 @@ namespace NAS.Core
         // synchronously as part of an event chain - it's just read later,
         // once the Estimator screen is shown.
         public int SelectedConfigurationId { get; set; } = 0;
+        // Server-assigned id from POST /api/telemetry/session, captured once
+        // StartTelemetrySession()'s best-effort call succeeds (0 = not
+        // started yet, or the call failed) - same "0 means unset" convention
+        // as SelectedConfigurationId above. Every other telemetry call
+        // (vehicle interactions, AR sessions, affordability sessions) needs
+        // this int, not a client-generated string id, to satisfy
+        // TelemetryService.ValidateCustomerSessionAsync on the backend.
+        public int TelemetrySessionId { get; set; } = 0;
+        // Set by SelectedCarModelLoader after each load attempt - true only
+        // if the customer's actual selected car model loaded (not a
+        // placeholder-prefab fallback from a download/parse/instantiate
+        // failure). Reset to false at the start of every attempt, before the
+        // async work begins. Read by ObjectPlacerController before sending
+        // AR-session telemetry on AR exit: an AR visit spent looking at (or
+        // immediately backing out of because of) a technical failure isn't
+        // genuine placement behaviour and shouldn't be recorded as if it
+        // were "customer looked and lost interest". Not event-chain-critical
+        // (nothing reacts to it synchronously) - just read later, same
+        // pattern as SelectedConfigurationId above.
+        public bool CurrentArModelLoadSucceeded { get; set; } = false;
 
         private IStorageService _storage;
 
@@ -120,6 +141,7 @@ namespace NAS.Core
             CurrentUser = evt.User;
             AccessToken = evt.AccessToken;
             EventBus.Publish(new SessionAuthenticatedEvent(CurrentUser, AccessToken));
+            StartTelemetrySession();
         }
 
         private void OnCarSelected(CarSelectedEvent evt)
@@ -127,8 +149,68 @@ namespace NAS.Core
             SelectedCar = evt.Vehicle;
             SelectedConfigurationId = 0; // belonged to whatever car was previously selected
             EventBus.Publish(new SessionCarSelectedEvent(SelectedCar));
+            LogVehicleViewedEvent(SelectedCar);
         }
         private void OnReturnToEstimatorRequested(ReturnToEstimatorRequestedEvent evt) => ReturnToEstimator = true;
+
+        // Best-effort, fire-and-forget - a failed/slow telemetry call must
+        // never block or delay login. TelemetrySessionId simply stays 0,
+        // which every other telemetry send treats as "session not ready,
+        // skip this call" rather than retrying or queuing.
+        private void StartTelemetrySession()
+        {
+            if (string.IsNullOrEmpty(AccessToken)) return;
+
+            var resolved = EnvironmentResolver.Resolve("[NAS Telemetry]");
+            if (resolved.Settings == null) return;
+
+            var telemetryApi = new TelemetryApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new CustomerSessionTelemetryRequest
+            {
+                clientSessionId = Guid.NewGuid().ToString(),
+                startedAt = DateTime.UtcNow.ToString("o"),
+                appVersion = Application.version,
+                platform = Application.platform.ToString(),
+                deviceType = SystemInfo.deviceModel
+            };
+            telemetryApi.StartSession(request, AccessToken, result =>
+            {
+                if (result.Success)
+                    TelemetrySessionId = result.Value.id;
+                else
+                    Debug.LogWarning($"[NAS Telemetry] Failed to start session: {result.Error.Detail}");
+            });
+        }
+
+        // Fires once per car selection (the "Start AR" tap), not per
+        // carousel swipe - CarSelectionScreenController doesn't currently
+        // publish anything on a card merely becoming centered, so this is
+        // the earliest real, stable hook for "customer looked at this car
+        // with intent" available today. Under-counts casual browsing
+        // compared to true per-swipe view tracking; a possible future
+        // enhancement, not something already being claimed here.
+        private void LogVehicleViewedEvent(VehicleInfo vehicle)
+        {
+            if (vehicle == null || vehicle.id <= 0 || TelemetrySessionId <= 0 || string.IsNullOrEmpty(AccessToken)) return;
+
+            var resolved = EnvironmentResolver.Resolve("[NAS Telemetry]");
+            if (resolved.Settings == null) return;
+
+            var telemetryApi = new TelemetryApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new ActivityEventTelemetryRequest
+            {
+                customerSessionId = TelemetrySessionId,
+                clientEventId = Guid.NewGuid().ToString(),
+                eventType = "vehicle_viewed",
+                occurredAt = DateTime.UtcNow.ToString("o"),
+                vehicleModelId = vehicle.id
+            };
+            telemetryApi.LogEvent(request, AccessToken, result =>
+            {
+                if (!result.Success)
+                    Debug.LogWarning($"[NAS Telemetry] vehicle_viewed event failed: {result.Error.Detail}");
+            });
+        }
 
         private void InitializeStorage()
         {

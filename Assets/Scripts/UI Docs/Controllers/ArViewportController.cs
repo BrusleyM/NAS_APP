@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NAS.Core;
 using NAS.Core.Events;
@@ -45,6 +46,15 @@ namespace NAS.UI.Controllers
 
         private IConfigurationApi _configurationApi;
         private bool _isConfirming;
+
+        // VehicleInteraction telemetry - paint is currently the only real
+        // customization surface (see the Dictionary comment above), so this
+        // is the sole source of colour_changes telemetry today. Reset per AR
+        // visit in ShowForCurrentCar(), sent once when the customer leaves AR
+        // (back or confirm) in SendVehicleInteractionTelemetry().
+        private int _colourChangeCount;
+        private string _clientVehicleInteractionId;
+        private DateTime _vehicleInteractionStartedAt;
 
         private void OnEnable()
         {
@@ -137,6 +147,10 @@ namespace NAS.UI.Controllers
             if (_swatchRow != null)
                 _swatchRow.Clear();
             SetElementVisible(_categoryPlaceholderText, false);
+
+            _colourChangeCount = 0;
+            _clientVehicleInteractionId = Guid.NewGuid().ToString();
+            _vehicleInteractionStartedAt = DateTime.UtcNow;
         }
 
         private void OnEnterAr(EnterArRequestedEvent evt) => ShowForCurrentCar();
@@ -245,6 +259,7 @@ namespace NAS.UI.Controllers
 
             swatch.AddToClassList("color-swatch--selected");
             _selectedSwatch = swatch;
+            _colourChangeCount++;
 
             EventBus.Publish(new PaintColorSelectedEvent(option.hexCode));
         }
@@ -265,6 +280,7 @@ namespace NAS.UI.Controllers
         // shows its own UI back in response to the event.
         private void OnBackClicked()
         {
+            SendVehicleInteractionTelemetry();
             HideUi();
             EventBus.Publish(new ExitArRequestedEvent());
         }
@@ -328,9 +344,46 @@ namespace NAS.UI.Controllers
         // rather than adding a new event for it.
         private void ProceedToEstimator()
         {
+            SendVehicleInteractionTelemetry();
             EventBus.Publish(new ReturnToEstimatorRequestedEvent());
             HideUi();
             EventBus.Publish(new ExitArRequestedEvent());
+        }
+
+        // Best-effort, same philosophy as every other telemetry send in this
+        // project. Sent even when _colourChangeCount is 0 (a real "customer
+        // didn't touch customization" signal), as long as a telemetry
+        // session and a selected car both exist. `this` is a safe coroutine
+        // runner here - this component's GameObject is never destroyed on
+        // AR exit (HideUi() just sets display:none).
+        private void SendVehicleInteractionTelemetry()
+        {
+            var gameManager = GameManager.Instance;
+            if (gameManager == null || gameManager.TelemetrySessionId <= 0) return;
+
+            var selectedCar = gameManager.SelectedCar;
+            var accessToken = gameManager.AccessToken;
+            if (selectedCar == null || selectedCar.id <= 0 || string.IsNullOrEmpty(accessToken)) return;
+
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
+            if (resolved.Settings == null) return;
+
+            var telemetryApi = new TelemetryApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new VehicleInteractionTelemetryRequest
+            {
+                customerSessionId = gameManager.TelemetrySessionId,
+                clientVehicleInteractionId = _clientVehicleInteractionId,
+                vehicleModelId = selectedCar.id,
+                categoryName = PaintCategoryId,
+                startedAt = _vehicleInteractionStartedAt.ToString("o"),
+                endedAt = DateTime.UtcNow.ToString("o"),
+                colourChangeCount = _colourChangeCount
+            };
+            telemetryApi.LogVehicleInteraction(request, accessToken, result =>
+            {
+                if (!result.Success)
+                    Debug.LogWarning($"{LogPrefix} Vehicle interaction telemetry failed: {result.Error.Detail}");
+            });
         }
     }
 }

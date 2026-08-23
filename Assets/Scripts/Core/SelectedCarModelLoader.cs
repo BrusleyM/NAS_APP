@@ -73,6 +73,9 @@ namespace NAS.Core
                 _currentModelRoot = null;
             }
 
+            if (GameManager.Instance != null)
+                GameManager.Instance.CurrentArModelLoadSucceeded = false;
+
             EventBus.Publish(new LoadingStartedEvent("Loading vehicle..."));
             try
             {
@@ -146,6 +149,8 @@ namespace NAS.Core
                 _placementService.RaycastPrefab = modelRoot;
                 _placementService.RaycastPrefabIsLiveInstance = true;
                 Debug.Log($"SelectedCarModelLoader: '{modelKey}' ready to place.");
+                if (GameManager.Instance != null)
+                    GameManager.Instance.CurrentArModelLoadSucceeded = true;
                 _objectPlacer.EnablePlacement();
             }
             finally
