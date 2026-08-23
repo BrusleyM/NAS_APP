@@ -82,4 +82,10 @@ crashlytics-build.properties
 /Assets/Models/cars/
 /Assets/Models/cars.meta
 
+# Android signing key + its password - keep these in a password manager
+# (1Password/Bitwarden), never in git. Key/Neo AR.keystore was already
+# committed before this rule existed (see git history) - this only stops
+# anything new from joining it.
+/Key/
+
 # End of https://www.toptal.com/developers/gitignore/api/unity
