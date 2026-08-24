@@ -42,6 +42,7 @@ namespace NAS.UI.Controllers
         private VisualElement _swatchRow;
         private Label _categoryPlaceholderText;
         private Button _selectedSwatch;
+        private int _selectedColorOptionId;
         private string _activeCategoryId;
 
         private IConfigurationApi _configurationApi;
@@ -144,6 +145,7 @@ namespace NAS.UI.Controllers
             foreach (var pair in _categoryButtons)
                 pair.Value.RemoveFromClassList("category-button--active");
             _selectedSwatch = null;
+            _selectedColorOptionId = 0;
             if (_swatchRow != null)
                 _swatchRow.Clear();
             SetElementVisible(_categoryPlaceholderText, false);
@@ -259,6 +261,7 @@ namespace NAS.UI.Controllers
 
             swatch.AddToClassList("color-swatch--selected");
             _selectedSwatch = swatch;
+            _selectedColorOptionId = option.id;
             _colourChangeCount++;
 
             EventBus.Publish(new PaintColorSelectedEvent(option.hexCode));
@@ -287,12 +290,13 @@ namespace NAS.UI.Controllers
 
         // Finalizes a SavedConfiguration for the selected car before handing
         // off to the Estimator - best-effort, same philosophy as
-        // EstimatorService's auto-scoring hook: there's no Customize UI yet
-        // for the customer to have picked trim/color/interior/wheel, so this
-        // just asks the backend to fill in that vehicle's default options,
-        // giving the eventual Lead a real SavedConfigurationId instead of
-        // always leaving it null. Any failure (no network, no vehicle
-        // selected, not signed in) must never block the customer from
+        // EstimatorService's auto-scoring hook. Sends the actually-selected
+        // paint swatch (_selectedColorOptionId, 0 if the customer never
+        // touched Customize); trim/interior/wheel still have no picker UI, so
+        // the backend fills those three in with that vehicle's default
+        // options. Gives the eventual Lead a real SavedConfigurationId
+        // instead of always leaving it null. Any failure (no network, no
+        // vehicle selected, not signed in) must never block the customer from
         // reaching the Estimator - it just proceeds with SelectedConfigurationId
         // left at 0, same as before this existed.
         private void OnConfirmClicked()
@@ -321,7 +325,11 @@ namespace NAS.UI.Controllers
                 _confirmButton.SetEnabled(false);
 
             _configurationApi = new ConfigurationApi(this, resolved.Settings, resolved.TrustAnyCertificate);
-            var request = new CreateConfigurationRequest { vehicleModelId = selectedCar.id };
+            var request = new CreateConfigurationRequest
+            {
+                vehicleModelId = selectedCar.id,
+                exteriorColorOptionId = _selectedColorOptionId
+            };
             _configurationApi.CreateConfiguration(request, accessToken, result =>
             {
                 _isConfirming = false;
