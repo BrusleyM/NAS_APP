@@ -28,15 +28,21 @@
     border-top-color: rgb(0, 212, 255);
 }
 
-/* Swapped in for the spinner once the submission succeeds - drop the
-   checkmark SVG at Assets/Textures/icons/checkmark.svg (matches this
-   project's existing icon convention, e.g. ArViewportScreen.uss's
-   gear.svg/paint-brush.svg) and it renders here with no further changes. */
+/* Swapped in for the spinner once the submission succeeds. Uses the fully-
+   qualified url(...?fileID=&guid=&type=) form, not a bare path - a bare
+   "project://database/Assets/Textures/icons/checkmark.svg" silently failed
+   to resolve this SVG's imported sub-asset (rendered nothing, no console
+   error) even though the identical bare-path form works fine for this
+   project's other icons (ArViewportScreen.uss's gear.svg/paint-brush.svg).
+   Fixed by re-attaching the icon through UI Builder's asset picker, which
+   writes out this explicit form. If a future SVG icon added the same way
+   silently doesn't render, try this form before assuming the asset itself
+   is broken. */
 .estimate-confirmation-checkmark {
     width: 64px;
     height: 64px;
-    background-image: url("project://database/Assets/Textures/icons/checkmark.svg");
     -unity-background-image-tint-color: rgb(0, 212, 255);
+    background-image: url("project://database/Assets/Textures/icons/checkmark.svg?fileID=7388822144124034973&guid=faca90ab62eae4b4b94a038bfd1d4356&type=3#checkmark");
 }
 
 .estimate-confirmation-message {

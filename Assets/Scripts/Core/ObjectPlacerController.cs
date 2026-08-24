@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using NAS.Core.Events;
 using NAS.Core.Interfaces;
+using NAS.Core.Networking;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.XR.ARFoundation;
@@ -29,6 +30,14 @@ namespace NAS.Core
         // Track which planes have already been used (only if _preventMultiplePerPlane is true)
         private HashSet<TrackableId> _usedPlanes = new HashSet<TrackableId>();
 
+        // AR-session telemetry - placement count only (see ArSessionTelemetryRequest's
+        // doc comment for why reposition/scale stay at 0). Reset both on the
+        // very first AR entry (OnEnable, no EnterArRequestedEvent fires then -
+        // see GameEvents.cs) and on every re-entry (OnEnterAr).
+        private int _placementCount;
+        private string _clientArSessionId;
+        private DateTime _arSessionStartedAt;
+
         private void OnEnable()
         {
             _inputProvider = _inputProviderBehaviour as IInputProvider;
@@ -43,6 +52,8 @@ namespace NAS.Core
 
             EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
             EventBus.Subscribe<ExitArRequestedEvent>(OnExitAr);
+
+            ResetArSessionTracking();
         }
 
         private void OnDisable()
@@ -65,15 +76,72 @@ namespace NAS.Core
             if (_planeManager != null)
                 _planeManager.enabled = true;
             ResetUsedPlanes();
+            ResetArSessionTracking();
         }
 
         private void OnExitAr(ExitArRequestedEvent evt)
         {
+            SendArSessionTelemetry();
             DisablePlacement();
             if (_planeManager != null)
                 _planeManager.enabled = false;
             if (_arSession != null)
                 _arSession.enabled = false;
+        }
+
+        private void ResetArSessionTracking()
+        {
+            _placementCount = 0;
+            _clientArSessionId = Guid.NewGuid().ToString();
+            _arSessionStartedAt = DateTime.UtcNow;
+        }
+
+        // Best-effort, same philosophy as every other telemetry send in this
+        // project - a failed/slow call must never block exiting AR. Sent
+        // even when _placementCount is 0 ("entered AR, placed nothing" is
+        // real signal too), as long as a telemetry session and a selected
+        // car both exist. Uses `this` as the coroutine runner (not
+        // GameManager.Instance) because this component stays enabled through
+        // OnExitAr - it isn't being destroyed the way EstimatorCardController
+        // is when it sends its own telemetry from OnDisable.
+        private void SendArSessionTelemetry()
+        {
+            var gameManager = GameManager.Instance;
+            if (gameManager == null || gameManager.TelemetrySessionId <= 0) return;
+
+            // A visit where the real car model failed to load (network error,
+            // bad glTF, etc.) isn't genuine placement behaviour - the
+            // customer either stared at the wrong placeholder or immediately
+            // backed out to retry, same as what actually happened in testing
+            // this. A resulting 0-placement record would misread as "looked
+            // and lost interest" when it's really a technical failure -
+            // don't record it at all rather than ship a false signal.
+            if (!gameManager.CurrentArModelLoadSucceeded) return;
+
+            var selectedCar = gameManager.SelectedCar;
+            var accessToken = gameManager.AccessToken;
+            if (selectedCar == null || selectedCar.id <= 0 || string.IsNullOrEmpty(accessToken)) return;
+
+            var resolved = EnvironmentResolver.Resolve("[NAS AR Telemetry]");
+            if (resolved.Settings == null) return;
+
+            var telemetryApi = new TelemetryApi(this, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new ArSessionTelemetryRequest
+            {
+                customerSessionId = gameManager.TelemetrySessionId,
+                clientArSessionId = _clientArSessionId,
+                vehicleModelId = selectedCar.id,
+                startedAt = _arSessionStartedAt.ToString("o"),
+                endedAt = DateTime.UtcNow.ToString("o"),
+                placementCount = _placementCount,
+                repositionCount = 0,
+                scaleCount = 0
+            };
+            telemetryApi.LogArSession(request, accessToken, result =>
+            {
+                if (!result.Success)
+                    Debug.LogWarning($"[NAS AR Telemetry] AR session telemetry failed: {result.Error.Detail}");
+            });
         }
 
         // No auto-start here on purpose - EnablePlacement() is called by
@@ -230,6 +298,7 @@ namespace NAS.Core
                         }
 
                         EventBus.Publish(new CarPlacedEvent(placedInstance));
+                        _placementCount++;
 
                         if (_preventMultiplePerPlane)
                             _usedPlanes.Add(planeId);

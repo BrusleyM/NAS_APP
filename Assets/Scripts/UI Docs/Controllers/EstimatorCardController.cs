@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using NAS.Core.Models;
@@ -50,6 +51,24 @@ namespace NAS.UI.Controllers
         private float _interestRate;
         private float _balloonPercent;
 
+        // AffordabilitySession telemetry - snapshotted once in OnEnable(),
+        // sent once in OnDisable() with whatever the fields ended up at.
+        // Deliberately sent on every exit (not only on "Send to Dealer") -
+        // a customer who fiddled with the calculator and left without
+        // submitting is exactly the warm/unconverted signal this exists to
+        // capture, not something to discard.
+        private float _initialDeposit;
+        private float _initialTradeIn;
+        private int _initialTermMonths;
+        private float _initialInterestRate;
+        private int _depositChangeCount;
+        private int _tradeInChangeCount;
+        private int _termChangeCount;
+        private int _interestRateChangeCount;
+        private int _calculationCount;
+        private string _clientAffordabilitySessionId;
+        private DateTime _affordabilitySessionStartedAt;
+
         private void OnEnable()
         {
             _loanCalculator = new LoanCalculator();
@@ -73,6 +92,18 @@ namespace NAS.UI.Controllers
             _loanTerm = 48;
             _interestRate = 4.5f;
             _balloonPercent = 0f;
+
+            _initialDeposit = _deposit;
+            _initialTradeIn = _tradeIn;
+            _initialTermMonths = _loanTerm;
+            _initialInterestRate = _interestRate;
+            _depositChangeCount = 0;
+            _tradeInChangeCount = 0;
+            _termChangeCount = 0;
+            _interestRateChangeCount = 0;
+            _calculationCount = 0;
+            _clientAffordabilitySessionId = Guid.NewGuid().ToString();
+            _affordabilitySessionStartedAt = DateTime.UtcNow;
 
             var uiDocument = GetComponent<UIDocument>();
             if (uiDocument == null) return;
@@ -124,6 +155,8 @@ namespace NAS.UI.Controllers
                 if (float.TryParse(sanitized, out var value))
                 {
                     _deposit = ValidateDeposit(value);
+                    _depositChangeCount++;
+                    _calculationCount++;
                     UpdateAll();
                 }
             });
@@ -135,6 +168,8 @@ namespace NAS.UI.Controllers
                 if (float.TryParse(sanitized, out var value))
                 {
                     _tradeIn = ValidateTradeIn(value);
+                    _tradeInChangeCount++;
+                    _calculationCount++;
                     UpdateAll();
                 }
             });
@@ -146,6 +181,8 @@ namespace NAS.UI.Controllers
                 if (int.TryParse(sanitized, out var value))
                 {
                     _loanTerm = ValidateLoanTerm(value);
+                    _termChangeCount++;
+                    _calculationCount++;
                     UpdateAll();
                 }
             });
@@ -155,6 +192,8 @@ namespace NAS.UI.Controllers
                 if (Mathf.Abs(_interestSlider.value - _interestRate) > 0.01f)
                     _interestSlider.SetValueWithoutNotify(_interestRate);
                 UpdateSliderFill(_interestSlider, _interestSliderFill);
+                _interestRateChangeCount++;
+                _calculationCount++;
                 UpdateAll();
             });
             _balloonSlider.RegisterValueChangedCallback(evt =>
@@ -163,6 +202,7 @@ namespace NAS.UI.Controllers
                 if (Mathf.Abs(_balloonSlider.value - _balloonPercent) > 0.01f)
                     _balloonSlider.SetValueWithoutNotify(_balloonPercent);
                 UpdateSliderFill(_balloonSlider, _balloonSliderFill);
+                _calculationCount++; // no dedicated backend counter for balloon - still a real recalculation
                 UpdateAll();
             });
             
@@ -341,6 +381,64 @@ namespace NAS.UI.Controllers
         private void OnDisable()
         {
             if (_sendButton != null) _sendButton.clicked -= OnSendToDealer;
+            SendAffordabilityTelemetry();
+        }
+
+        // Best-effort, same philosophy as every other telemetry send in this
+        // project - must never throw or block teardown. Uses
+        // GameManager.Instance as the coroutine runner, NOT `this`: by the
+        // time OnDisable()'s body runs, this component is already disabled
+        // (it's being destroyed via ParentPageController.RemoveCardControllers()),
+        // and Unity refuses to start a new coroutine on an already-disabled
+        // MonoBehaviour. GameManager is the DontDestroyOnLoad singleton that
+        // stays enabled through this teardown.
+        private void SendAffordabilityTelemetry()
+        {
+            var gameManager = GameManager.Instance;
+            if (gameManager == null || gameManager.TelemetrySessionId <= 0) return;
+
+            var accessToken = gameManager.AccessToken;
+            if (string.IsNullOrEmpty(accessToken) || _vehicle == null || _vehicle.id <= 0) return;
+
+            var resolved = EnvironmentResolver.Resolve(LogPrefix);
+            if (resolved.Settings == null) return;
+
+            float financed = _vehicle.retailPrice - _deposit - _tradeIn;
+            if (financed < 0) financed = 0;
+            float balloonAmount = financed * (_balloonPercent / 100f);
+            float finalMonthly = _loanCalculator.CalculateMonthlyPayment(financed, balloonAmount, _loanTerm, _interestRate);
+            float initialFinanced = Mathf.Max(0f, _vehicle.retailPrice - _initialDeposit - _initialTradeIn);
+            float initialMonthly = _loanCalculator.CalculateMonthlyPayment(initialFinanced, 0f, _initialTermMonths, _initialInterestRate);
+
+            var telemetryApi = new TelemetryApi(gameManager, resolved.Settings, resolved.TrustAnyCertificate);
+            var request = new AffordabilitySessionTelemetryRequest
+            {
+                customerSessionId = gameManager.TelemetrySessionId,
+                clientAffordabilitySessionId = _clientAffordabilitySessionId,
+                vehicleModelId = _vehicle.id,
+                startedAt = _affordabilitySessionStartedAt.ToString("o"),
+                endedAt = DateTime.UtcNow.ToString("o"),
+                initialDeposit = _initialDeposit,
+                finalDeposit = _deposit,
+                initialTradeIn = _initialTradeIn,
+                finalTradeIn = _tradeIn,
+                initialTermMonths = _initialTermMonths,
+                finalTermMonths = _loanTerm,
+                initialInterestRate = _initialInterestRate,
+                finalInterestRate = _interestRate,
+                initialMonthlyPayment = initialMonthly,
+                finalMonthlyPayment = finalMonthly,
+                calculationCount = _calculationCount,
+                depositChangeCount = _depositChangeCount,
+                tradeInChangeCount = _tradeInChangeCount,
+                termChangeCount = _termChangeCount,
+                interestRateChangeCount = _interestRateChangeCount
+            };
+            telemetryApi.LogAffordabilitySession(request, accessToken, result =>
+            {
+                if (!result.Success)
+                    Debug.LogWarning($"{LogPrefix} Affordability telemetry failed: {result.Error.Detail}");
+            });
         }
     }
 }
