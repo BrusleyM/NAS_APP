@@ -1,7 +1,8 @@
 using NAS.Core.Events;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace NAS.Core
 {
@@ -20,6 +21,12 @@ namespace NAS.Core
     /// Two-finger twist-to-rotate was deliberately replaced by the slider -
     /// real users found twisting hard to do accurately. Deliberately does
     /// NOT read raw touches for rotation at all any more.
+    ///
+    /// Touch handling is event-driven (EnhancedTouch's onFingerDown/Move/Up),
+    /// not a per-frame Update() poll - on the real target platform (a
+    /// touchscreen device), Update() below never does more than a single
+    /// early-out null check; it only does real work as an Editor-only mouse
+    /// fallback, since a mouse can't fire finger events.
     /// </summary>
     public class CarManipulationController : MonoBehaviour
     {
@@ -73,6 +80,17 @@ namespace NAS.Core
             EventBus.Subscribe<RotationSliderGrabbedEvent>(OnRotationSliderGrabbed);
             EventBus.Subscribe<RotationSliderChangedEvent>(OnRotationSliderChanged);
             EventBus.Subscribe<RotationSliderReleasedEvent>(OnRotationSliderReleased);
+
+            // Ref-counted internally - safe even if something else in the
+            // project also enables it. This is the only place in the
+            // project reading touches through EnhancedTouch specifically
+            // (UnityInputProvider's tap detection uses the lower-level
+            // Touchscreen.current.primaryTouch instead, which needs no
+            // enabling).
+            EnhancedTouchSupport.Enable();
+            Touch.onFingerDown += OnFingerDown;
+            Touch.onFingerMove += OnFingerMove;
+            Touch.onFingerUp += OnFingerUp;
         }
 
         private void OnDisable()
@@ -83,6 +101,11 @@ namespace NAS.Core
             EventBus.Unsubscribe<RotationSliderGrabbedEvent>(OnRotationSliderGrabbed);
             EventBus.Unsubscribe<RotationSliderChangedEvent>(OnRotationSliderChanged);
             EventBus.Unsubscribe<RotationSliderReleasedEvent>(OnRotationSliderReleased);
+
+            Touch.onFingerDown -= OnFingerDown;
+            Touch.onFingerMove -= OnFingerMove;
+            Touch.onFingerUp -= OnFingerUp;
+            EnhancedTouchSupport.Disable();
         }
 
         private void OnEnterAr(EnterArRequestedEvent evt) => ResetSession();
@@ -194,49 +217,61 @@ namespace NAS.Core
             ResetRotationGestureState();
         }
 
-        // Only ever runs once something's placed. One-finger drag
-        // repositions, two-finger pinch scales - both read every frame so a
-        // gesture segment naturally continues across frames.
-        private void Update()
+        // Fires once per finger touching down - no gesture work needed here,
+        // HandleReposition/HandlePinch below establish their own baseline on
+        // the first onFingerMove after a touch-count change.
+        private void OnFingerDown(Finger finger)
+        {
+        }
+
+        // Only ever does anything once something's placed. Reads
+        // Touch.activeTouches (this frame's full active set), not just the
+        // finger that triggered this particular callback, so a two-finger
+        // pinch/rotate always sees both current positions regardless of
+        // which finger's movement fired the event.
+        private void OnFingerMove(Finger finger)
         {
             if (_placedInstance == null || _isCustomizeSheetOpen || _isRotationSliderActive)
                 return;
 
-            if (Touchscreen.current != null)
+            var activeTouches = Touch.activeTouches;
+            if (activeTouches.Count == 1)
             {
-                TouchControl first = null;
-                TouchControl second = null;
-                foreach (var touch in Touchscreen.current.touches)
-                {
-                    if (!touch.press.isPressed)
-                        continue;
-                    if (first == null)
-                        first = touch;
-                    else if (second == null)
-                        second = touch;
-                }
-
-                if (first != null && second == null)
-                {
-                    ResetPinchState();
-                    HandleReposition(first.position.ReadValue());
-                    return;
-                }
-
-                if (first != null && second != null)
-                {
-                    ResetDragState();
-                    HandlePinch(first.position.ReadValue(), second.position.ReadValue());
-                    return;
-                }
+                ResetPinchState();
+                HandleReposition(activeTouches[0].screenPosition);
             }
+            else if (activeTouches.Count >= 2)
+            {
+                ResetDragState();
+                HandlePinch(activeTouches[0].screenPosition, activeTouches[1].screenPosition);
+            }
+        }
 
-            // No active touches (or running somewhere with no touchscreen at
-            // all, e.g. the Editor) - fall back to a mouse drag for
-            // reposition only. Pinch has no natural mouse equivalent; real
-            // gesture testing happens on-device, same as every other AR
-            // feature in this project.
+        // A finger lifting changes the active count for whichever gesture
+        // was in progress (2->1 means the pinch/rotate segment is over, even
+        // though a drag could still start fresh with the remaining finger;
+        // 1->0 means everything stops) - reset both unconditionally rather
+        // than trying to infer which one to keep, since either can restart
+        // cleanly from its own next onFingerMove.
+        private void OnFingerUp(Finger finger)
+        {
+            ResetDragState();
             ResetPinchState();
+        }
+
+        // Real touchscreen devices (the actual AR target) are handled
+        // entirely by OnFingerDown/Move/Up above - EnhancedTouch is
+        // event-driven, so this never runs any real work there beyond the
+        // Touchscreen.current check failing fast. This only exists for
+        // Editor mouse-drag testing (reposition only - pinch has no natural
+        // mouse equivalent, and a mouse can't fire finger events at all).
+        private void Update()
+        {
+            if (Touchscreen.current != null)
+                return;
+            if (_placedInstance == null || _isCustomizeSheetOpen || _isRotationSliderActive)
+                return;
+
             if (Mouse.current != null && Mouse.current.leftButton.isPressed)
                 HandleReposition(Mouse.current.position.ReadValue());
             else
