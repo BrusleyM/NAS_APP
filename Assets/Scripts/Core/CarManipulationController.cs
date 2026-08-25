@@ -23,10 +23,10 @@ namespace NAS.Core
     /// NOT read raw touches for rotation at all any more.
     ///
     /// Touch handling is event-driven (EnhancedTouch's onFingerDown/Move/Up),
-    /// not a per-frame Update() poll - on the real target platform (a
-    /// touchscreen device), Update() below never does more than a single
-    /// early-out null check; it only does real work as an Editor-only mouse
-    /// fallback, since a mouse can't fire finger events.
+    /// not a per-frame Update() poll - the only Update() in this class is
+    /// wrapped in #if UNITY_EDITOR as a mouse-drag fallback for testing, so
+    /// it doesn't exist at all (no per-frame dispatch overhead whatsoever)
+    /// on the real target platform, a touchscreen device.
     /// </summary>
     public class CarManipulationController : MonoBehaviour
     {
@@ -259,12 +259,15 @@ namespace NAS.Core
             ResetPinchState();
         }
 
-        // Real touchscreen devices (the actual AR target) are handled
-        // entirely by OnFingerDown/Move/Up above - EnhancedTouch is
-        // event-driven, so this never runs any real work there beyond the
-        // Touchscreen.current check failing fast. This only exists for
-        // Editor mouse-drag testing (reposition only - pinch has no natural
-        // mouse equivalent, and a mouse can't fire finger events at all).
+#if UNITY_EDITOR
+        // Editor-only mouse-drag fallback (reposition only - pinch has no
+        // natural mouse equivalent, and a mouse can't fire finger events at
+        // all). Wrapped in UNITY_EDITOR rather than just runtime-checking
+        // Touchscreen.current, so this method - and the per-frame Update()
+        // dispatch Unity gives any MonoBehaviour that defines one - doesn't
+        // exist at all on the real target platform (a touchscreen device).
+        // Real touch handling is fully event-driven via
+        // OnFingerDown/Move/Up above regardless of build target.
         private void Update()
         {
             if (Touchscreen.current != null)
@@ -277,6 +280,7 @@ namespace NAS.Core
             else
                 ResetDragState();
         }
+#endif
 
         private void HandleReposition(Vector2 screenPos)
         {
