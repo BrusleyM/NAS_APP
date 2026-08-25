@@ -164,11 +164,42 @@ namespace NAS.Core.Events
         public PaintColorSelectedEvent(string hexCode) => HexCode = hexCode;
     }
 
-    /// <summary>Raised by ArViewportController whenever the Customize sheet opens/closes, so ObjectPlacerController can suspend gesture manipulation while the user is tapping swatches instead of dragging the car underneath them.</summary>
+    /// <summary>Raised by ArViewportController whenever the Customize sheet opens/closes, so CarManipulationController can suspend touch manipulation while the user is tapping swatches instead of dragging the car underneath them.</summary>
     public readonly struct CustomizeSheetToggledEvent
     {
         public readonly bool IsOpen;
         public CustomizeSheetToggledEvent(bool isOpen) => IsOpen = isOpen;
+    }
+
+    /// <summary>Raised by ArViewportController's rotation slider on every value change while the user is dragging it - applied live to the placed car by CarManipulationController.</summary>
+    public readonly struct RotationSliderChangedEvent
+    {
+        public readonly float Degrees;
+        public RotationSliderChangedEvent(float degrees) => Degrees = degrees;
+    }
+
+    /// <summary>Raised by ArViewportController when the user releases the rotation slider, so CarManipulationController knows one rotation "gesture" ended (for threshold-based interaction counting, same idea as lifting a finger off a touch drag).</summary>
+    public readonly struct RotationSliderReleasedEvent { }
+
+    /// <summary>Raised by CarManipulationController whenever repositionCount/scaleCount/rotationCount change, so ObjectPlacerController can fold them into the ArSession telemetry it owns sending.</summary>
+    public readonly struct GestureCountsUpdatedEvent
+    {
+        public readonly int RepositionCount;
+        public readonly int ScaleCount;
+        public readonly int RotationCount;
+        public GestureCountsUpdatedEvent(int repositionCount, int scaleCount, int rotationCount)
+        {
+            RepositionCount = repositionCount;
+            ScaleCount = scaleCount;
+            RotationCount = rotationCount;
+        }
+    }
+
+    /// <summary>Raised by CarManipulationController whenever the placed car's scale multiplier changes, so ArViewportController can show the live real:virtual ratio next to the "Pinch to scale" hint.</summary>
+    public readonly struct CarScaleChangedEvent
+    {
+        public readonly float Multiplier;
+        public CarScaleChangedEvent(float multiplier) => Multiplier = multiplier;
     }
 
     // ---- Estimator flow -------------------------------------------------------

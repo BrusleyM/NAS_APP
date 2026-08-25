@@ -83,6 +83,29 @@
     font-size: 12px;
 }
 
+.rotation-slider-row {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: 92px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(18, 18, 18, 0.55);
+    border-radius: 20px;
+    padding: 6px 16px;
+}
+
+.rotation-slider-label {
+    color: rgba(192, 192, 192, 0.8);
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+.rotation-slider {
+    flex-grow: 1;
+    margin: 0;
+}
+
 .settings-button-row {
     position: absolute;
     left: 0;

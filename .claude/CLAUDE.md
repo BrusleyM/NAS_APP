@@ -311,11 +311,26 @@ Screen flow, as actually wired:
   `ShowEstimatorCard()` instead, resetting the flag.
 
 **Built so far:** top bar (Back button, centered car name label, circular cyan
-Confirm/checkmark button), the two gesture-hint text labels ("Swipe to rotate" /
-"Pinch to scale", bottom-left, non-interactive — `picking-mode="Ignore"` so they
-don't block AR touch gestures), and a bottom-center Settings button that opens a
+Confirm/checkmark button), a bottom-center Settings button that opens a
 placeholder "Customize" bottom sheet (drag handle, header with close button, just
-a "Coming soon" label — tapping the backdrop or the close button closes it).
+a "Coming soon" label — tapping the backdrop or the close button closes it), and
+real manipulation of the placed car — one-finger drag to reposition, two-finger
+pinch to scale (clamped 1x–2.5x real-world size, never smaller — shrinking below
+1:1 defeats the point of seeing it at true scale), and a rotation slider (`-180°`
+to `180°`, positioned above the Settings button) instead of the two-finger twist
+gesture originally planned — real users found twisting hard to do accurately.
+`CarManipulationController` (`Assets/Scripts/Core/CarManipulationController.cs`,
+on the "AR Man" prefab alongside `ObjectPlacerController`/`CarPaintController`)
+owns all three; `ArViewportController` owns the slider control and the
+"Pinch to scale `[1:x]`" hint label (bottom-left, live-updating — the ratio is
+real-world size : current displayed size, e.g. `[1:1.5]` at 1.5x), purely
+event-driven (`RotationSliderChangedEvent`/`CarScaleChangedEvent`/
+`GestureCountsUpdatedEvent`) in both directions, same as paint colour. Real
+interaction counts feed the `ArSession` telemetry `ObjectPlacerController`
+already sent — see the "ML buyer classification" work in `NAS_Backend`'s own
+CLAUDE.md-equivalent docs for where `ar_rotations`/`ar_repositions`/`ar_scales`
+were consumed as model features before any real gesture system existed to
+produce them.
 Colors match the Figma spec (`#C0C0C0` neutral, `#00D4FF` active/accent) but
 `box-shadow` glow wasn't reproduced (UI Toolkit's USS support for it wasn't used
 here — check current Unity version support before assuming it's unavailable).
