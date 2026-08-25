@@ -164,6 +164,13 @@ namespace NAS.Core.Events
         public PaintColorSelectedEvent(string hexCode) => HexCode = hexCode;
     }
 
+    /// <summary>Raised by ArViewportController whenever the Customize sheet opens/closes, so ObjectPlacerController can suspend gesture manipulation while the user is tapping swatches instead of dragging the car underneath them.</summary>
+    public readonly struct CustomizeSheetToggledEvent
+    {
+        public readonly bool IsOpen;
+        public CustomizeSheetToggledEvent(bool isOpen) => IsOpen = isOpen;
+    }
+
     // ---- Estimator flow -------------------------------------------------------
 
     /// <summary>Raised by EstimatorCardController right before it calls the submit-estimate API, so EstimateConfirmationOverlayController can show its spinner state.</summary>

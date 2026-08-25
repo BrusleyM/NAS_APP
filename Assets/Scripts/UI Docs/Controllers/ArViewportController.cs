@@ -196,6 +196,7 @@ namespace NAS.UI.Controllers
                 _sheetBackdrop.style.display = display;
             if (_customizeSheet != null)
                 _customizeSheet.style.display = display;
+            EventBus.Publish(new CustomizeSheetToggledEvent(open));
         }
 
         private void OnCategoryClicked(string categoryId)
