@@ -171,6 +171,9 @@ namespace NAS.Core.Events
         public CustomizeSheetToggledEvent(bool isOpen) => IsOpen = isOpen;
     }
 
+    /// <summary>Raised by ArViewportController when the user first touches down on the rotation slider, so CarManipulationController can suspend raw touch reposition/pinch reading for the duration of the drag - otherwise the same finger touch is also read as a reposition drag on the car underneath (most visible once the slider hits -180/180 and stops producing RotationSliderChangedEvents, but the finger is still moving).</summary>
+    public readonly struct RotationSliderGrabbedEvent { }
+
     /// <summary>Raised by ArViewportController's rotation slider on every value change while the user is dragging it - applied live to the placed car by CarManipulationController.</summary>
     public readonly struct RotationSliderChangedEvent
     {
@@ -178,7 +181,7 @@ namespace NAS.Core.Events
         public RotationSliderChangedEvent(float degrees) => Degrees = degrees;
     }
 
-    /// <summary>Raised by ArViewportController when the user releases the rotation slider, so CarManipulationController knows one rotation "gesture" ended (for threshold-based interaction counting, same idea as lifting a finger off a touch drag).</summary>
+    /// <summary>Raised by ArViewportController when the user releases the rotation slider, so CarManipulationController knows one rotation "gesture" ended (for threshold-based interaction counting, same idea as lifting a finger off a touch drag) and can resume raw touch reading.</summary>
     public readonly struct RotationSliderReleasedEvent { }
 
     /// <summary>Raised by CarManipulationController whenever repositionCount/scaleCount/rotationCount change, so ObjectPlacerController can fold them into the ArSession telemetry it owns sending.</summary>

@@ -113,6 +113,7 @@ namespace NAS.UI.Controllers
 
             if (_rotationSlider != null)
             {
+                _rotationSlider.RegisterCallback<PointerDownEvent>(OnRotationSliderGrabbed);
                 _rotationSlider.RegisterValueChangedCallback(OnRotationSliderValueChanged);
                 _rotationSlider.RegisterCallback<PointerUpEvent>(OnRotationSliderReleased);
             }
@@ -184,6 +185,9 @@ namespace NAS.UI.Controllers
 
         private void OnEnterAr(EnterArRequestedEvent evt) => ShowForCurrentCar();
 
+        private void OnRotationSliderGrabbed(PointerDownEvent evt) =>
+            EventBus.Publish(new RotationSliderGrabbedEvent());
+
         private void OnRotationSliderValueChanged(ChangeEvent<float> evt) =>
             EventBus.Publish(new RotationSliderChangedEvent(evt.newValue));
 
@@ -225,6 +229,7 @@ namespace NAS.UI.Controllers
                 _sheetBackdrop.UnregisterCallback<ClickEvent>(OnBackdropClicked);
             if (_rotationSlider != null)
             {
+                _rotationSlider.UnregisterCallback<PointerDownEvent>(OnRotationSliderGrabbed);
                 _rotationSlider.UnregisterValueChangedCallback(OnRotationSliderValueChanged);
                 _rotationSlider.UnregisterCallback<PointerUpEvent>(OnRotationSliderReleased);
             }

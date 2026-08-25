@@ -42,6 +42,7 @@ namespace NAS.Core
         private Vector3 _originalLocalScale;
         private float _scaleMultiplier = 1f;
         private bool _isCustomizeSheetOpen;
+        private bool _isRotationSliderActive;
 
         private int _repositionCount;
         private int _scaleCount;
@@ -69,6 +70,7 @@ namespace NAS.Core
             EventBus.Subscribe<CarPlacedEvent>(OnCarPlaced);
             EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
             EventBus.Subscribe<CustomizeSheetToggledEvent>(OnCustomizeSheetToggled);
+            EventBus.Subscribe<RotationSliderGrabbedEvent>(OnRotationSliderGrabbed);
             EventBus.Subscribe<RotationSliderChangedEvent>(OnRotationSliderChanged);
             EventBus.Subscribe<RotationSliderReleasedEvent>(OnRotationSliderReleased);
         }
@@ -78,6 +80,7 @@ namespace NAS.Core
             EventBus.Unsubscribe<CarPlacedEvent>(OnCarPlaced);
             EventBus.Unsubscribe<EnterArRequestedEvent>(OnEnterAr);
             EventBus.Unsubscribe<CustomizeSheetToggledEvent>(OnCustomizeSheetToggled);
+            EventBus.Unsubscribe<RotationSliderGrabbedEvent>(OnRotationSliderGrabbed);
             EventBus.Unsubscribe<RotationSliderChangedEvent>(OnRotationSliderChanged);
             EventBus.Unsubscribe<RotationSliderReleasedEvent>(OnRotationSliderReleased);
         }
@@ -133,9 +136,7 @@ namespace NAS.Core
 
         // Suspend touch manipulation while the Customize sheet is open -
         // otherwise tapping/dragging across a paint swatch would also read
-        // as a reposition drag on the car underneath it. The rotation
-        // slider doesn't need this: it's a real UI Toolkit control, so a tap
-        // that lands on a swatch simply never reaches it in the first place.
+        // as a reposition drag on the car underneath it.
         private void OnCustomizeSheetToggled(CustomizeSheetToggledEvent evt)
         {
             _isCustomizeSheetOpen = evt.IsOpen;
@@ -146,6 +147,22 @@ namespace NAS.Core
             }
         }
 
+        // The slider is a real UI Toolkit control, so a tap that lands on
+        // it never gets consumed by anything else in the UI - but the SAME
+        // physical touch is still visible to Update()'s raw Touchscreen
+        // read below, which has no idea a UI element is also handling it.
+        // Without this suspension, dragging the slider also drags the car
+        // underneath: most noticeable once the slider hits its -180/180
+        // limit and stops producing RotationSliderChangedEvents, but the
+        // finger is still moving - that continued movement was leaking
+        // straight into HandleReposition.
+        private void OnRotationSliderGrabbed(RotationSliderGrabbedEvent evt)
+        {
+            _isRotationSliderActive = true;
+            ResetDragState();
+            ResetPinchState();
+        }
+
         private void OnRotationSliderChanged(RotationSliderChangedEvent evt)
         {
             if (_placedInstance == null)
@@ -154,8 +171,12 @@ namespace NAS.Core
             float delta = Mathf.Abs(Mathf.DeltaAngle(_lastSliderDegrees, evt.Degrees));
             // Absolute, not cumulative - the slider's own position is the
             // single source of truth for the car's current rotation, unlike
-            // the old twist gesture which only ever applied deltas.
-            _placedInstance.transform.localRotation = Quaternion.Euler(0f, evt.Degrees, 0f);
+            // the old twist gesture which only ever applied deltas. Negated:
+            // dragging the slider right (increasing degrees) should turn the
+            // car the same way it turns for a swipe-right in AR, which is
+            // the opposite sign from a raw Y-axis Euler increase given how
+            // the camera views the placed car.
+            _placedInstance.transform.localRotation = Quaternion.Euler(0f, -evt.Degrees, 0f);
             _rotationAccumThisGesture += delta;
             _lastSliderDegrees = evt.Degrees;
 
@@ -167,14 +188,18 @@ namespace NAS.Core
             }
         }
 
-        private void OnRotationSliderReleased(RotationSliderReleasedEvent evt) => ResetRotationGestureState();
+        private void OnRotationSliderReleased(RotationSliderReleasedEvent evt)
+        {
+            _isRotationSliderActive = false;
+            ResetRotationGestureState();
+        }
 
         // Only ever runs once something's placed. One-finger drag
         // repositions, two-finger pinch scales - both read every frame so a
         // gesture segment naturally continues across frames.
         private void Update()
         {
-            if (_placedInstance == null || _isCustomizeSheetOpen)
+            if (_placedInstance == null || _isCustomizeSheetOpen || _isRotationSliderActive)
                 return;
 
             if (Touchscreen.current != null)
