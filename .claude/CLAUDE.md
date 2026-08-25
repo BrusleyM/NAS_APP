@@ -347,6 +347,21 @@ same pattern as the top bar (scene-placed controller in `AR Scene.unity`, not
 `AddComponent`-dynamic — this scene only ever shows one screen, so it doesn't need
 `ParentPageController`'s router pattern).
 
+**TODO, not urgent — telemetry-sending isn't consistently factored out of the
+controller that owns the interaction.** `ObjectPlacerController` still builds
+and sends `ArSession` telemetry itself (aggregating its own placement count
+plus `CarManipulationController`'s reposition/scale/rotation counts via
+`GestureCountsUpdatedEvent`) — this was deliberately kept as-is when
+`CarManipulationController` was split out, since every *other* telemetry send
+in the project follows the same inline pattern: `ArViewportController` sends
+its own `VehicleInteraction` telemetry, `EstimatorCardController` sends its
+own `AffordabilitySession` telemetry from `OnDisable`, `GameManager` sends
+`CustomerSession`. Pulling only `ArSession`'s send into its own class would
+make that one type inconsistent with the other three, not more consistent.
+The real fix, when it's worth doing, is a broader pass across all four at
+once — either a shared telemetry-sending pattern or dedicated sender classes
+for each — not a one-off extraction on just this one.
+
 ## Recurring gotcha: inline UXML styles silently override USS class rules
 
 This has caused real, hard-to-spot bugs multiple times in this project. Inline
