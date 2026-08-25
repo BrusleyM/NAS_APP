@@ -33,6 +33,14 @@ namespace NAS.UI.Controllers
         private VisualElement _sheetBackdrop;
         private VisualElement _customizeSheet;
 
+        // Rotation slider - replaces the old two-finger twist gesture (real
+        // users found twisting hard to do accurately). Owns the slider
+        // control itself; CarManipulationController applies the values via
+        // RotationSliderChangedEvent, this controller never touches the
+        // placed car directly.
+        private Slider _rotationSlider;
+        private Label _scaleHintLabel;
+
         // Wheel/Trims/Dashboard have no data model to back real customization
         // yet (see .claude/CLAUDE.md's "Vehicle catalog" section) - tapping
         // them just shows the same "Coming soon" placeholder the whole sheet
@@ -100,6 +108,15 @@ namespace NAS.UI.Controllers
             _customizeSheet = root.Q<VisualElement>("customize-sheet");
             _swatchRow = root.Q<VisualElement>("swatch-row");
             _categoryPlaceholderText = root.Q<Label>("category-placeholder-text");
+            _rotationSlider = root.Q<Slider>("rotation-slider");
+            _scaleHintLabel = root.Q<Label>("scale-hint-label");
+
+            if (_rotationSlider != null)
+            {
+                _rotationSlider.RegisterCallback<PointerDownEvent>(OnRotationSliderGrabbed);
+                _rotationSlider.RegisterValueChangedCallback(OnRotationSliderValueChanged);
+                _rotationSlider.RegisterCallback<PointerUpEvent>(OnRotationSliderReleased);
+            }
 
             if (_backButton != null)
                 _backButton.clicked += OnBackClicked;
@@ -122,6 +139,7 @@ namespace NAS.UI.Controllers
             }
 
             EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
+            EventBus.Subscribe<CarScaleChangedEvent>(OnCarScaleChanged);
             ShowForCurrentCar();
         }
 
@@ -150,12 +168,37 @@ namespace NAS.UI.Controllers
                 _swatchRow.Clear();
             SetElementVisible(_categoryPlaceholderText, false);
 
+            // SetValueWithoutNotify - a plain `.value = 0` would fire
+            // RotationSliderChangedEvent through the normal callback path,
+            // which is fine in itself (CarManipulationController would just
+            // reset the not-yet-placed car's rotation to 0, a no-op), but
+            // relying on that side effect to reset the label/slider in sync
+            // is more fragile than just doing it directly here.
+            _rotationSlider?.SetValueWithoutNotify(0f);
+            if (_scaleHintLabel != null)
+                _scaleHintLabel.text = "Pinch to scale [1:1]";
+
             _colourChangeCount = 0;
             _clientVehicleInteractionId = Guid.NewGuid().ToString();
             _vehicleInteractionStartedAt = DateTime.UtcNow;
         }
 
         private void OnEnterAr(EnterArRequestedEvent evt) => ShowForCurrentCar();
+
+        private void OnRotationSliderGrabbed(PointerDownEvent evt) =>
+            EventBus.Publish(new RotationSliderGrabbedEvent());
+
+        private void OnRotationSliderValueChanged(ChangeEvent<float> evt) =>
+            EventBus.Publish(new RotationSliderChangedEvent(evt.newValue));
+
+        private void OnRotationSliderReleased(PointerUpEvent evt) =>
+            EventBus.Publish(new RotationSliderReleasedEvent());
+
+        private void OnCarScaleChanged(CarScaleChangedEvent evt)
+        {
+            if (_scaleHintLabel != null)
+                _scaleHintLabel.text = $"Pinch to scale [1:{evt.Multiplier:0.##}]";
+        }
 
         private void ShowUi()
         {
@@ -172,6 +215,7 @@ namespace NAS.UI.Controllers
         private void OnDisable()
         {
             EventBus.Unsubscribe<EnterArRequestedEvent>(OnEnterAr);
+            EventBus.Unsubscribe<CarScaleChangedEvent>(OnCarScaleChanged);
 
             if (_backButton != null)
                 _backButton.clicked -= OnBackClicked;
@@ -183,6 +227,12 @@ namespace NAS.UI.Controllers
                 _sheetCloseButton.clicked -= OnCloseSheetClicked;
             if (_sheetBackdrop != null)
                 _sheetBackdrop.UnregisterCallback<ClickEvent>(OnBackdropClicked);
+            if (_rotationSlider != null)
+            {
+                _rotationSlider.UnregisterCallback<PointerDownEvent>(OnRotationSliderGrabbed);
+                _rotationSlider.UnregisterValueChangedCallback(OnRotationSliderValueChanged);
+                _rotationSlider.UnregisterCallback<PointerUpEvent>(OnRotationSliderReleased);
+            }
         }
 
         private void OnSettingsClicked() => SetCustomizeSheetOpen(true);
@@ -196,6 +246,7 @@ namespace NAS.UI.Controllers
                 _sheetBackdrop.style.display = display;
             if (_customizeSheet != null)
                 _customizeSheet.style.display = display;
+            EventBus.Publish(new CustomizeSheetToggledEvent(open));
         }
 
         private void OnCategoryClicked(string categoryId)

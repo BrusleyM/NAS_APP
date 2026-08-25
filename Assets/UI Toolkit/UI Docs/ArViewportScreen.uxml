@@ -20,8 +20,12 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="gesture-hints" class="gesture-hints" picking-mode="Ignore">
-            <ui:Label text="Swipe to rotate" class="gesture-hint-label" />
-            <ui:Label text="Pinch to scale" class="gesture-hint-label" />
+            <ui:Label name="scale-hint-label" text="Pinch to scale [1:1]" class="gesture-hint-label" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="rotation-slider-row" class="rotation-slider-row">
+            <ui:Label text="Rotate" class="rotation-slider-label" />
+            <ui:Slider name="rotation-slider" low-value="-180" high-value="180" value="0" class="rotation-slider" />
         </ui:VisualElement>
 
         <ui:VisualElement name="settings-button-row" class="settings-button-row" picking-mode="Ignore">

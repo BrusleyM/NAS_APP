@@ -30,11 +30,18 @@ namespace NAS.Core
         // Track which planes have already been used (only if _preventMultiplePerPlane is true)
         private HashSet<TrackableId> _usedPlanes = new HashSet<TrackableId>();
 
-        // AR-session telemetry - placement count only (see ArSessionTelemetryRequest's
-        // doc comment for why reposition/scale stay at 0). Reset both on the
-        // very first AR entry (OnEnable, no EnterArRequestedEvent fires then -
-        // see GameEvents.cs) and on every re-entry (OnEnterAr).
+        // AR-session telemetry. Placement is this component's own doing;
+        // reposition/scale/rotation come from CarManipulationController (see
+        // its own file - a separate component owns everything about
+        // manipulating the placed car, this one only owns getting it placed
+        // and reporting the combined session) via GestureCountsUpdatedEvent,
+        // not computed here. Reset both on the very first AR entry (OnEnable,
+        // no EnterArRequestedEvent fires then - see GameEvents.cs) and on
+        // every re-entry (OnEnterAr).
         private int _placementCount;
+        private int _repositionCount;
+        private int _scaleCount;
+        private int _rotationCount;
         private string _clientArSessionId;
         private DateTime _arSessionStartedAt;
 
@@ -52,6 +59,7 @@ namespace NAS.Core
 
             EventBus.Subscribe<EnterArRequestedEvent>(OnEnterAr);
             EventBus.Subscribe<ExitArRequestedEvent>(OnExitAr);
+            EventBus.Subscribe<GestureCountsUpdatedEvent>(OnGestureCountsUpdated);
 
             ResetArSessionTracking();
         }
@@ -60,6 +68,18 @@ namespace NAS.Core
         {
             EventBus.Unsubscribe<EnterArRequestedEvent>(OnEnterAr);
             EventBus.Unsubscribe<ExitArRequestedEvent>(OnExitAr);
+            EventBus.Unsubscribe<GestureCountsUpdatedEvent>(OnGestureCountsUpdated);
+        }
+
+        // CarManipulationController publishes this every time any of its
+        // counts changes (including the reset-to-zero it publishes on its
+        // own OnEnterAr/new-placement) - just mirror whatever it last
+        // reported rather than tracking gesture state here too.
+        private void OnGestureCountsUpdated(GestureCountsUpdatedEvent evt)
+        {
+            _repositionCount = evt.RepositionCount;
+            _scaleCount = evt.ScaleCount;
+            _rotationCount = evt.RotationCount;
         }
 
         // AR Scene is loaded once and never reloaded (see ParentPageController.OnCarSelected) -
@@ -92,6 +112,9 @@ namespace NAS.Core
         private void ResetArSessionTracking()
         {
             _placementCount = 0;
+            _repositionCount = 0;
+            _scaleCount = 0;
+            _rotationCount = 0;
             _clientArSessionId = Guid.NewGuid().ToString();
             _arSessionStartedAt = DateTime.UtcNow;
         }
@@ -134,8 +157,9 @@ namespace NAS.Core
                 startedAt = _arSessionStartedAt.ToString("o"),
                 endedAt = DateTime.UtcNow.ToString("o"),
                 placementCount = _placementCount,
-                repositionCount = 0,
-                scaleCount = 0
+                repositionCount = _repositionCount,
+                scaleCount = _scaleCount,
+                rotationCount = _rotationCount
             };
             telemetryApi.LogArSession(request, accessToken, result =>
             {

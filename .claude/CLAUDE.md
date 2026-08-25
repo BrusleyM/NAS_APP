@@ -311,11 +311,26 @@ Screen flow, as actually wired:
   `ShowEstimatorCard()` instead, resetting the flag.
 
 **Built so far:** top bar (Back button, centered car name label, circular cyan
-Confirm/checkmark button), the two gesture-hint text labels ("Swipe to rotate" /
-"Pinch to scale", bottom-left, non-interactive — `picking-mode="Ignore"` so they
-don't block AR touch gestures), and a bottom-center Settings button that opens a
+Confirm/checkmark button), a bottom-center Settings button that opens a
 placeholder "Customize" bottom sheet (drag handle, header with close button, just
-a "Coming soon" label — tapping the backdrop or the close button closes it).
+a "Coming soon" label — tapping the backdrop or the close button closes it), and
+real manipulation of the placed car — one-finger drag to reposition, two-finger
+pinch to scale (clamped 1x–2.5x real-world size, never smaller — shrinking below
+1:1 defeats the point of seeing it at true scale), and a rotation slider (`-180°`
+to `180°`, positioned above the Settings button) instead of the two-finger twist
+gesture originally planned — real users found twisting hard to do accurately.
+`CarManipulationController` (`Assets/Scripts/Core/CarManipulationController.cs`,
+on the "AR Man" prefab alongside `ObjectPlacerController`/`CarPaintController`)
+owns all three; `ArViewportController` owns the slider control and the
+"Pinch to scale `[1:x]`" hint label (bottom-left, live-updating — the ratio is
+real-world size : current displayed size, e.g. `[1:1.5]` at 1.5x), purely
+event-driven (`RotationSliderChangedEvent`/`CarScaleChangedEvent`/
+`GestureCountsUpdatedEvent`) in both directions, same as paint colour. Real
+interaction counts feed the `ArSession` telemetry `ObjectPlacerController`
+already sent — see the "ML buyer classification" work in `NAS_Backend`'s own
+CLAUDE.md-equivalent docs for where `ar_rotations`/`ar_repositions`/`ar_scales`
+were consumed as model features before any real gesture system existed to
+produce them.
 Colors match the Figma spec (`#C0C0C0` neutral, `#00D4FF` active/accent) but
 `box-shadow` glow wasn't reproduced (UI Toolkit's USS support for it wasn't used
 here — check current Unity version support before assuming it's unavailable).
@@ -331,6 +346,21 @@ grid once that data exists, following the
 same pattern as the top bar (scene-placed controller in `AR Scene.unity`, not
 `AddComponent`-dynamic — this scene only ever shows one screen, so it doesn't need
 `ParentPageController`'s router pattern).
+
+**TODO, not urgent — telemetry-sending isn't consistently factored out of the
+controller that owns the interaction.** `ObjectPlacerController` still builds
+and sends `ArSession` telemetry itself (aggregating its own placement count
+plus `CarManipulationController`'s reposition/scale/rotation counts via
+`GestureCountsUpdatedEvent`) — this was deliberately kept as-is when
+`CarManipulationController` was split out, since every *other* telemetry send
+in the project follows the same inline pattern: `ArViewportController` sends
+its own `VehicleInteraction` telemetry, `EstimatorCardController` sends its
+own `AffordabilitySession` telemetry from `OnDisable`, `GameManager` sends
+`CustomerSession`. Pulling only `ArSession`'s send into its own class would
+make that one type inconsistent with the other three, not more consistent.
+The real fix, when it's worth doing, is a broader pass across all four at
+once — either a shared telemetry-sending pattern or dedicated sender classes
+for each — not a one-off extraction on just this one.
 
 ## Recurring gotcha: inline UXML styles silently override USS class rules
 
