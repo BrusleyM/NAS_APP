@@ -184,6 +184,22 @@ namespace NAS.Core.Events
     /// <summary>Raised by ArViewportController when the user releases the rotation slider, so CarManipulationController knows one rotation "gesture" ended (for threshold-based interaction counting, same idea as lifting a finger off a touch drag) and can resume raw touch reading.</summary>
     public readonly struct RotationSliderReleasedEvent { }
 
+    /// <summary>Raised by ArViewportController when the user first touches down on the vertical-offset slider - same reasoning as RotationSliderGrabbedEvent, for the same "raw touch reading fights the slider" problem.</summary>
+    public readonly struct VerticalOffsetSliderGrabbedEvent { }
+
+    /// <summary>Raised by ArViewportController's vertical-offset slider on every value change while the user is dragging it - applied live to the placed car's local Y by CarManipulationController, correcting for anchor/tracking height error without touching X/Z drag or rotation.</summary>
+    public readonly struct VerticalOffsetSliderChangedEvent
+    {
+        public readonly float OffsetMeters;
+        public VerticalOffsetSliderChangedEvent(float offsetMeters) => OffsetMeters = offsetMeters;
+    }
+
+    /// <summary>Raised by ArViewportController when the user releases the vertical-offset slider - same reasoning as RotationSliderReleasedEvent.</summary>
+    public readonly struct VerticalOffsetSliderReleasedEvent { }
+
+    /// <summary>Raised by ArViewportController's reset-position button - CarManipulationController clears any drag/vertical-offset correction on the placed car, snapping its local position back to exactly where its anchor sits. Rotation and scale are untouched - each already has its own dedicated control.</summary>
+    public readonly struct CarPositionResetRequestedEvent { }
+
     /// <summary>Raised by CarManipulationController whenever repositionCount/scaleCount/rotationCount change, so ObjectPlacerController can fold them into the ArSession telemetry it owns sending.</summary>
     public readonly struct GestureCountsUpdatedEvent
     {

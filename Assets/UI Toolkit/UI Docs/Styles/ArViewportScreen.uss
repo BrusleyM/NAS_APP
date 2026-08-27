@@ -106,6 +106,47 @@
     margin: 0;
 }
 
+.vertical-offset-slider-column {
+    position: absolute;
+    right: 16px;
+    top: 120px;
+    bottom: 160px;
+    width: 44px;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(18, 18, 18, 0.55);
+    border-radius: 20px;
+    padding: 12px 0;
+}
+
+.vertical-offset-slider {
+    flex-grow: 1;
+    margin: 8px 0 0 0;
+}
+
+.reset-position-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-width: 1px;
+    border-color: rgba(192, 192, 192, 0.3);
+    color: rgb(192, 192, 192);
+    font-size: 16px;
+    -unity-text-align: middle-center;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.reset-position-button:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+    color: rgb(0, 212, 255);
+    border-color: rgba(0, 212, 255, 0.6);
+}
+
 .settings-button-row {
     position: absolute;
     left: 0;

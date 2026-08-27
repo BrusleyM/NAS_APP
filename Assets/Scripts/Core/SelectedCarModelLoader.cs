@@ -144,6 +144,7 @@ namespace NAS.Core
                 // door-open animation) read this instead of re-deriving
                 // categories from material names themselves.
                 modelRoot.AddComponent<CarComponents>();
+                ContactShadowFactory.Attach(modelRoot);
 
                 modelRoot.SetActive(false);
                 _placementService.RaycastPrefab = modelRoot;
